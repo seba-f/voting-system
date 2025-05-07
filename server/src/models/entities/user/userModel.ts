@@ -1,11 +1,12 @@
 import {Model,DataTypes} from 'sequelize';
-import sequelize from './db';
+import sequelize from '../../db';
 
 class User extends Model{
     public id: number;
     public username:string;
     public email:string;
     public password:string;
+    public is_active:boolean;
 }
 
 User.init({
@@ -20,7 +21,7 @@ User.init({
     },
     email:{
         type:DataTypes.STRING,
-        allowNull:true,
+        allowNull:false,
         unique:true
     },
     password:{
@@ -29,6 +30,11 @@ User.init({
         get() {
             return undefined;
         }
+    },
+    is_active:{
+        type:DataTypes.BOOLEAN,
+        allowNull:false,
+        defaultValue:false
     }
 },{
     sequelize,

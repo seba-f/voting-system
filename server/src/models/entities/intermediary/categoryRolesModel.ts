@@ -1,12 +1,12 @@
 import { DataTypes, Model } from "sequelize";
-import sequelize from "./db";
+import sequelize from "../../db";
 
-class RoleAccess extends Model{
+class CategoryRoles extends Model{
     public role_id:number;
     public category_id:number;
 }
 
-RoleAccess.init({
+CategoryRoles.init({
     role_id:{
         type:DataTypes.INTEGER,
         allowNull:false
@@ -17,8 +17,8 @@ RoleAccess.init({
     }
 },{
     sequelize,
-    modelName:'RoleAccess',
-    tableName:'role_access'
+    modelName:'CategoryRoles',
+    tableName:'category_roles'
 });
 
-export default RoleAccess;
+export default CategoryRoles;

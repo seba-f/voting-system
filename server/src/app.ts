@@ -1,6 +1,7 @@
 import express, { json } from 'express';
 import dotenv from 'dotenv';
 import sequelize from './models/db';
+import './models/entities'
 import fs from 'fs';
 import path from 'path';
 
@@ -8,16 +9,8 @@ const app = express();
 
 app.use(express.json());
 
-//load all models dynamically
-const modelsPath=path.join(__dirname,'models');
-fs.readdirSync(modelsPath).forEach((file)=>{
-	if(file.endsWith('.ts')) {
-		import (`./models/${file}`);
-	}
-})
-
 //init db
-sequelize.sync({force:true})
+sequelize.sync({alter:true})
 .then(()=>{
 	console.log('Database connected successfully');
 	console.log('Registered models: ', Object.keys(sequelize.models));

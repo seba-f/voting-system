@@ -1,10 +1,11 @@
 import { DataTypes, Model } from "sequelize";
-import sequelize from "./db";
+import sequelize from "../../db";
 
 class VotingOption extends Model{
     public id:number;
     public ballot_id:number;
-    public text:string;
+    public title:string;
+    public is_text:boolean;
 }
 
 VotingOption.init({
@@ -18,8 +19,12 @@ VotingOption.init({
         type:DataTypes.INTEGER,
         allowNull:false
     },
-    text:{
+    title:{
         type:DataTypes.STRING,
+        allowNull:false
+    },
+    is_text:{
+        type:DataTypes.BOOLEAN,
         allowNull:false
     }
 },{

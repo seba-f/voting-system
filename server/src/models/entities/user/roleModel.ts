@@ -1,17 +1,16 @@
 import { DataTypes, Model } from "sequelize";
-import sequelize from "./db";
+import sequelize from "../../db";
 
-class Category extends Model{
+class Role extends Model{
     public id:number;
     public name:string;
 }
 
-Category.init({
+Role.init({
     id:{
         type:DataTypes.INTEGER,
         primaryKey:true,
-        autoIncrement:true,
-        allowNull:false
+        autoIncrement:true
     },
     name:{
         type:DataTypes.STRING,
@@ -19,7 +18,7 @@ Category.init({
     }
 },{
     sequelize,
-    modelName:'Category',
-    tableName:'categories'
+    modelName:'Role',
+    tableName:'Roles'
 });
-export default Category;
+export default Role;

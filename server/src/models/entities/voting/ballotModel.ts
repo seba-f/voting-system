@@ -1,16 +1,25 @@
 import { DataTypes, Model } from "sequelize";
-import sequelize from "./db";
+import sequelize from "../../db";
+
+export enum BallotType {
+    SINGLE_CHOICE = 'SINGLE_CHOICE',     // One option only
+    MULTIPLE_CHOICE = 'MULTIPLE_CHOICE', // Multiple options allowed
+    RANKED_CHOICE = 'RANKED_CHOICE',  // Rank options by preference
+    LINEAR_CHOICE = 'LINEAR_CHOICE',   //
+    TEXT_INPUT = 'TEXT_INPUT',          // Free text response
+    YES_NO = 'YES_NO'                   // Simple yes/no vote 
+}
 
 class Ballot extends Model{
     public id:number;
     public description:string;
     public title:string;
-    public type_id:number;
     public category_id:number;
     public limit_date:Date;
     public is_suspended:boolean;
     public suspension_duration:number;
     public admin_id:number;
+    public ballot_type: BallotType;
 }
 
 Ballot.init({
@@ -25,10 +34,6 @@ Ballot.init({
     },
     title:{
         type:DataTypes.STRING,
-        allowNull:false
-    },
-    type_id:{
-        type:DataTypes.INTEGER,
         allowNull:false
     },
     category_id:{
@@ -50,6 +55,10 @@ Ballot.init({
     admin_id:{
         type:DataTypes.INTEGER,
         allowNull:false
+    },
+    ballot_type: {
+        type: DataTypes.ENUM(...Object.values(BallotType)),
+        allowNull: false
     }
 },{
     sequelize,
