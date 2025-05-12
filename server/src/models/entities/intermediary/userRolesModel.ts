@@ -2,16 +2,16 @@ import { DataTypes, Model } from "sequelize";
 import sequelize from "../../db";
 
 class UserRoles extends Model{
-    public user_id:number;
-    public role_id:number;
+    public userId:number;
+    public roleId:number;
 }
 
 UserRoles.init({
-    user_id:{
+    userId:{
         type:DataTypes.INTEGER,
         allowNull:false
     },
-    role_id:{
+    roleId:{
         type:DataTypes.INTEGER,
         allowNull:false
     }

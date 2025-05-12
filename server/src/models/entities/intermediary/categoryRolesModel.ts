@@ -2,18 +2,18 @@ import { DataTypes, Model } from "sequelize";
 import sequelize from "../../db";
 
 class CategoryRoles extends Model{
-    public role_id:number;
-    public category_id:number;
+    public roleId:number;
+    public categoryId:number;
 }
 
 CategoryRoles.init({
-    role_id:{
+    roleId:{
         type:DataTypes.INTEGER,
         allowNull:false
     },
-    category_id:{
+    categoryId:{
         type:DataTypes.INTEGER,
-        allowNull:false,
+        allowNull:false
     }
 },{
     sequelize,

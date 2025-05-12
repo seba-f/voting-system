@@ -4,10 +4,10 @@ import { BallotType } from "./ballotModel";
 
 class Vote extends Model {
     public id: number;
-    public user_id: number;
-    public ballot_id: number;
-    public option_id: number;
-    public text_response: string;
+    public userId: number;
+    public ballotId: number;
+    public optionId: number;
+    public textResponse: string;
     public timestamp: Date;
     public rank: number;
 }
@@ -18,21 +18,21 @@ Vote.init({
         primaryKey: true,
         autoIncrement: true
     },
-    user_id: {
+    userId: {
         type: DataTypes.INTEGER,
         allowNull: false
     },
-    ballot_id: {
+    ballotId: {
         type: DataTypes.INTEGER,
         allowNull: false
     },
-    option_id: {
+    optionId: {
         type: DataTypes.INTEGER,
         allowNull: false
     },
-    text_response: {
+    textResponse: {
         type: DataTypes.TEXT,
-        allowNull: true,
+        allowNull: true
     },
     timestamp: {
         type: DataTypes.DATE,

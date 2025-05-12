@@ -3,9 +3,9 @@ import sequelize from "../../db";
 
 class VotingOption extends Model{
     public id:number;
-    public ballot_id:number;
+    public ballotId:number;
     public title:string;
-    public is_text:boolean;
+    public isText:boolean;
 }
 
 VotingOption.init({
@@ -15,7 +15,7 @@ VotingOption.init({
         primaryKey:true,
         autoIncrement:true
     },
-    ballot_id:{
+    ballotId:{
         type:DataTypes.INTEGER,
         allowNull:false
     },
@@ -23,7 +23,7 @@ VotingOption.init({
         type:DataTypes.STRING,
         allowNull:false
     },
-    is_text:{
+    isText:{
         type:DataTypes.BOOLEAN,
         allowNull:false
     }

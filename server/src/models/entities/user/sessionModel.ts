@@ -3,12 +3,12 @@ import sequelize from "../../db";
 
 class Session extends Model{
     public id:number;
-    public user_id:number;
+    public userId:number;
     public token:string;
-    public expires_at:Date;
-    public is_active:boolean;
-    public ip_address:string;
-    public user_agent:string;
+    public expiresAt:Date;
+    public isActive:boolean;
+    public ipAddress:string;
+    public userAgent:string;
 }
 
 Session.init({
@@ -17,7 +17,7 @@ Session.init({
         primaryKey:true,
         autoIncrement:true
     },
-    user_id:{
+    userId:{
         type:DataTypes.INTEGER,
         allowNull:false
     },
@@ -25,24 +25,24 @@ Session.init({
         type:DataTypes.STRING,
         allowNull:false
     },
-    expires_at:{
+    expiresAt:{
         type:DataTypes.DATE,
         allowNull:false,
         defaultValue: ()=>{
             const date=new Date();
             date.setHours(date.getHours()+1);
             return date;
-        } //1h token
+        }
     },
-    is_active:{
+    isActive:{
         type:DataTypes.BOOLEAN,
         allowNull:false
     },
-    ip_address:{
+    ipAddress:{
         type:DataTypes.STRING,
         allowNull:false
     },
-    user_agent:{
+    userAgent:{
         type:DataTypes.STRING,
         allowNull:false,
         defaultValue:'N/A'

@@ -6,7 +6,7 @@ class User extends Model{
     public username:string;
     public email:string;
     public password:string;
-    public is_active:boolean;
+    public isActive:boolean;
 }
 
 User.init({
@@ -31,7 +31,7 @@ User.init({
             return undefined;
         }
     },
-    is_active:{
+    isActive:{
         type:DataTypes.BOOLEAN,
         allowNull:false,
         defaultValue:false

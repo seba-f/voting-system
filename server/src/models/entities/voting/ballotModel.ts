@@ -14,12 +14,12 @@ class Ballot extends Model{
     public id:number;
     public description:string;
     public title:string;
-    public category_id:number;
-    public limit_date:Date;
-    public is_suspended:boolean;
-    public suspension_duration:number;
-    public admin_id:number;
-    public ballot_type: BallotType;
+    public categoryId:number;
+    public limitDate:Date;
+    public isSuspended:boolean;
+    public suspensionDuration:number;
+    public adminId:number;
+    public ballotType: BallotType;
 }
 
 Ballot.init({
@@ -30,33 +30,33 @@ Ballot.init({
     },
     description:{
         type:DataTypes.STRING,
-        allowNull:false,
+        allowNull:false
     },
     title:{
         type:DataTypes.STRING,
         allowNull:false
     },
-    category_id:{
+    categoryId:{
         type:DataTypes.INTEGER,
         allowNull:false
     },
-    limit_date:{
+    limitDate:{
         type:DataTypes.DATE,
         allowNull:false
     },
-    is_suspended:{
+    isSuspended:{
         type:DataTypes.BOOLEAN,
         allowNull:false
     },
-    suspension_duration:{
+    suspensionDuration:{
         type:DataTypes.INTEGER,
         allowNull:false
     },
-    admin_id:{
+    adminId:{
         type:DataTypes.INTEGER,
         allowNull:false
     },
-    ballot_type: {
+    ballotType: {
         type: DataTypes.ENUM(...Object.values(BallotType)),
         allowNull: false
     }
