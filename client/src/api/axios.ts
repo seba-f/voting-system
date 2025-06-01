@@ -1,9 +1,11 @@
-import axios from "axios";
-import { API_URL } from "../config";
+import axios from 'axios';
+import { API_BASE_URL } from '../constants';
 
-//base url
-const API=axios.create({
-    baseURL:API_URL,
-    withCredentials:true,
+const API = axios.create({
+    baseURL: API_BASE_URL,
+    headers: {
+        'Content-Type': 'application/json'
+    }
 });
+
 export default API;
