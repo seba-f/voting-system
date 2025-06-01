@@ -26,10 +26,7 @@ User.init({
     },
     password:{
         type:DataTypes.STRING,
-        allowNull:false,
-        get() {
-            return undefined;
-        }
+        allowNull:false
     },
     isActive:{
         type:DataTypes.BOOLEAN,
