@@ -19,6 +19,10 @@ export const rules: Required<ModuleOptions>['rules'] = [
     },
   },
   {
+    test: /\.(png|jpe?g|gif|svg|ico)$/i,
+    type: 'asset/resource',
+  },
+  {
     test: /\.tsx?$/,
     exclude: /(node_modules|\.webpack)/,
     use: {

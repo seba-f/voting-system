@@ -6,33 +6,47 @@ import fs from 'fs';
 import path from 'path';
 import authRouter from './routes/authRouter';
 import { Session, User } from './models/entities';
+import cors from 'cors';
+import { Op } from 'sequelize';
 
 const app = express();
+
+app.use(cors({
+  origin: ['http://localhost:3000', 'app://voting-system'],
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+}));
 
 app.use(express.json());
 app.use('/api',authRouter);
 
-// Function to cleanup active sessions
+// Function to cleanup invalid sessions on server start
 const cleanupSessions = async () => {
     try {
-        // Find all active sessions
-        const activeSessions = await Session.findAll({
-            where: { isActive: true }
+        // In development, keep sessions for easier testing
+        if (process.env.NODE_ENV === 'development') {
+            return;
+        }
+
+        // Only cleanup obviously invalid sessions (null tokens, etc)
+        const invalidSessions = await Session.findAll({
+            where: { 
+                [Op.or]: [
+                    { token: null },
+                    { expiresAt: null }
+                ]
+            }
         });
 
-        // Update all active sessions and their users
-        await Promise.all([
-            Session.update(
-                { isActive: false },
-                { where: { isActive: true } }
-            ),
-            User.update(
-                { isActive: false },
-                { where: { isActive: true } }
-            )
-        ]);
-
-        console.log(`Cleaned up ${activeSessions.length} active sessions`);
+        if (invalidSessions.length > 0) {
+            await Session.destroy({
+                where: {
+                    id: invalidSessions.map(s => s.id)
+                }
+            });
+            console.log(`Cleaned up ${invalidSessions.length} invalid sessions`);
+        }
     } catch (err) {
         console.error('Error cleaning up sessions:', err);
     }
@@ -49,21 +63,27 @@ const gracefulShutdown = async () => {
 process.on('SIGTERM', gracefulShutdown);
 process.on('SIGINT', gracefulShutdown);
 
-//init db
-sequelize.sync({alter:true})
-.then(async () => {
-    console.log('Database connected successfully');
-    console.log('Registered models: ', Object.keys(sequelize.models));
-    
-    // Clean up any sessions that might have been left active from previous run
-    await cleanupSessions();
-})
-.then(result => {
-    const PORT = process.env.PORT || 5000;
-    app.listen(PORT,() => {
-        console.log(`Server running on port ${PORT}`);
-    });
-})
-.catch((err) => {
-    console.error('Unable to connect to database: ',err);
-});
+//init db and start server
+const initializeApp = async () => {
+    try {
+        // First, just test the connection
+        await sequelize.authenticate();
+        console.log('Database connection established successfully');
+
+        await sequelize.sync({alter:true});
+
+        // Clean up sessions regardless of mode
+        await cleanupSessions();
+
+        // Start server after successful database initialization
+        const PORT = process.env.PORT || 5000;
+        app.listen(PORT, () => {
+            console.log(`Server running on port ${PORT}`);
+        });
+    } catch (err) {
+        console.error('Failed to initialize application:', err);
+        process.exit(1);
+    }
+};
+
+initializeApp();
