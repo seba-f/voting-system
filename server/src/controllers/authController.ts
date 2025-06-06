@@ -260,14 +260,18 @@ export const extendSession = async (req: Request, res: Response): Promise<void> 
             },
             process.env.JWT_SECRET as string,
             { expiresIn: JWT_EXPIRY }
-        );
-
-        // Update session with new expiry and token
+        );        // Update session with new expiry and token
         const expireAt = new Date(Date.now() + SESSION_DURATION_MS);
-        session.token = newToken;
-        session.expiresAt = expireAt;
-        session.isActive = true;
-        await session.save();
+        await Session.update(
+            {
+                token: newToken,
+                expiresAt: expireAt,
+                isActive: true
+            },
+            {
+                where: { id: session.id }
+            }
+        );
 
         res.status(200).json({ token: newToken });
     } catch (err) {

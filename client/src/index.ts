@@ -1,4 +1,5 @@
-import { app, BrowserWindow, Menu } from 'electron';
+import path from 'path';
+import { app, BrowserWindow, Menu, nativeImage } from 'electron';
 
 declare const MAIN_WINDOW_PRELOAD_WEBPACK_ENTRY: string;
 declare const MAIN_WINDOW_WEBPACK_ENTRY: string;
@@ -19,10 +20,20 @@ if (process.env.NODE_ENV === 'development') {
 }
 
 const createWindow = (): void => {
+  // Set up icon paths for different environments
+  const isDev = process.env.NODE_ENV === 'development';
+  const iconPath = isDev
+    ? path.join(__dirname, '..', 'src', 'assets', 'icons', 'icon.ico')
+    : path.join(__dirname, 'assets', 'icons', 'icon.ico');
+    
+  // Create a native image from the icon file
+  const icon = nativeImage.createFromPath(iconPath);
+  
   // Create the browser window.
   const mainWindow = new BrowserWindow({
     height: 600,
     width: 800,
+    icon,
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true,

@@ -14,7 +14,7 @@ export const SESSION_DURATION_MS = SESSION_DURATION_MIN * 60 * 1000;
 /** How many ms before session end to show warning */
 export const WARNING_BEFORE_MS = MINUTES_BEFORE_EXPIRY * 60 * 1000;
 
-/** JWT expiry string */
+/** JWT expiry string - matches session duration */
 export const JWT_EXPIRY = '30s';
 
 /** Duration in seconds for JWT token */

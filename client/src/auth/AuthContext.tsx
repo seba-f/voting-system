@@ -38,19 +38,25 @@ export const AuthProvider = ({children}: {children: React.ReactNode}) => {
     const [showSessionDialog, setShowSessionDialog] = useState(false);
     const [countdown, setCountdown] = useState(Math.floor(WARNING_BEFORE_MS / 1000));
     
-    // Single timer for session expiry warning and auto-logout
+    // Timer refs for session expiry warning and countdown
     const expiryTimerRef = useRef<NodeJS.Timeout | null>(null);
+    const countdownIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
-    const clearTimer = useCallback(() => {
+    const clearTimers = useCallback(() => {
         if (expiryTimerRef.current) {
             clearTimeout(expiryTimerRef.current);
             expiryTimerRef.current = null;
         }
+        if (countdownIntervalRef.current) {
+            clearInterval(countdownIntervalRef.current);
+            countdownIntervalRef.current = null;
+        }
+        setShowSessionDialog(false);
     }, []);
 
     // Handle session cleanup and user logout
     const logout = useCallback(async () => {
-        clearTimer();
+        clearTimers();
         // Get token directly from localStorage instead of state
         const tokenToClear = localStorage.getItem('token');
         console.log('Current token state:', token);
@@ -67,7 +73,6 @@ export const AuthProvider = ({children}: {children: React.ReactNode}) => {
                 // Clear everything after successful API call
                 setToken(null);
                 setUser(null);
-                setShowSessionDialog(false);
                 localStorage.removeItem('token');
                 localStorage.removeItem('user');
                 localStorage.removeItem('sessionExpiry');
@@ -76,9 +81,11 @@ export const AuthProvider = ({children}: {children: React.ReactNode}) => {
         } catch (error) {
             console.error('Logout error:', error);
         }
-    }, [clearTimer]);    // Set up session expiry timer
+    }, [clearTimers, token]);
+
+    // Set up session expiry timer
     const setupSessionExpiry = useCallback((persist: boolean) => {
-        clearTimer();
+        clearTimers();
         
         const expiryTime = Date.now() + SESSION_DURATION_MS;
         
@@ -90,26 +97,25 @@ export const AuthProvider = ({children}: {children: React.ReactNode}) => {
         
         expiryTimerRef.current = setTimeout(() => {
             setShowSessionDialog(true);
+            setCountdown(Math.floor(WARNING_BEFORE_MS / 1000));
             
             const startTime = Date.now();
             const warningDuration = WARNING_BEFORE_MS;
             const logoutTime = startTime + warningDuration;
             
-            const countdownInterval = setInterval(() => {
+            countdownIntervalRef.current = setInterval(() => {
                 const now = Date.now();
                 const remainingMs = logoutTime - now;
                 
                 if (remainingMs <= 0) {
-                    clearInterval(countdownInterval);
-                    setShowSessionDialog(false);
-                    // Call logout regardless of token presence
+                    clearTimers();
                     logout();
                 } else {
                     setCountdown(Math.ceil(remainingMs / 1000));
                 }
             }, 100);
         }, warningDelay);
-    }, [logout, clearTimer]); // Removed token dependency since we don't need it
+    }, [clearTimers, logout]);
 
     const login = async (email: string, password: string, persist: boolean = false) => {
         try {
@@ -137,17 +143,24 @@ export const AuthProvider = ({children}: {children: React.ReactNode}) => {
             throw error;
         }
     };
-
+    
     const extendSession = async () => {
         try {
             const response = await API.post('/extend-session');
             const { token: newToken } = response.data;
             
+            // Update token in state and API headers
             setToken(newToken);
             API.defaults.headers.common['Authorization'] = `Bearer ${newToken}`;
             
-            setupSessionExpiry(!!localStorage.getItem('sessionExpiry'));
-            setShowSessionDialog(false);
+            // Always update localStorage with new expiry time
+            const expiryTime = Date.now() + 60*60*1000; //always extend by 1h
+            localStorage.setItem('sessionExpiry', expiryTime.toString());
+            localStorage.setItem('token', newToken);
+            
+            // Reset timers and hide dialog
+            clearTimers();
+            setupSessionExpiry(true);
         } catch (error) {
             console.error('Failed to extend session:', error);
             await logout();
@@ -191,8 +204,8 @@ export const AuthProvider = ({children}: {children: React.ReactNode}) => {
 
     // Clean up timer on unmount
     useEffect(() => {
-        return () => clearTimer();
-    }, [clearTimer]);
+        return () => clearTimers();
+    }, [clearTimers]);
 
     // Log token changes
     useEffect(() => {
