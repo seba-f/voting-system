@@ -3,10 +3,10 @@
  */
 
 /** Session duration in minutes */
-const SESSION_DURATION_MIN = 0.5; // 1 hour
+const SESSION_DURATION_MIN = 60; // 1 hour
 
 /** Minutes before session end to show warning */
-const MINUTES_BEFORE_EXPIRY = 0.25;
+const MINUTES_BEFORE_EXPIRY = 5;
 
 /** Session duration in milliseconds */
 export const SESSION_DURATION_MS = SESSION_DURATION_MIN * 60 * 1000;
@@ -15,7 +15,7 @@ export const SESSION_DURATION_MS = SESSION_DURATION_MIN * 60 * 1000;
 export const WARNING_BEFORE_MS = MINUTES_BEFORE_EXPIRY * 60 * 1000;
 
 /** JWT expiry string - matches session duration */
-export const JWT_EXPIRY = '30s';
+export const JWT_EXPIRY = '60m';
 
 /** Duration in seconds for JWT token */
 export const SESSION_DURATION_SEC = Math.floor(SESSION_DURATION_MS / 1000);
