@@ -144,9 +144,9 @@ export const UserCard = ({ user, options, onDelete }: UserCardProps) => {
 											py: 0.5,
 											borderRadius: 50,
 											fontSize: "0.8125rem",
-											bgcolor: alpha(theme.palette.primary.main, 0.05),
+											bgcolor: alpha(theme.palette.secondary.main, 0.05),
 											border: 1,
-											borderColor: alpha(theme.palette.primary.main, 0.2),
+											borderColor: alpha(theme.palette.secondary.main, 0.2),
 											color: theme.palette.text.primary,
 										}}
 									>

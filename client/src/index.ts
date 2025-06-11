@@ -1,5 +1,5 @@
 import path from 'path';
-import { app, BrowserWindow, Menu, nativeImage } from 'electron';
+import { app, BrowserWindow, Menu, nativeImage, session } from 'electron';
 
 declare const MAIN_WINDOW_PRELOAD_WEBPACK_ENTRY: string;
 declare const MAIN_WINDOW_WEBPACK_ENTRY: string;
@@ -19,7 +19,7 @@ if (process.env.NODE_ENV === 'development') {
   } catch (_) { console.log('Error'); }
 }
 
-const createWindow = (): void => {
+const createWindow = async (): Promise<void> => {
   // Set up icon paths for different environments
   const isDev = process.env.NODE_ENV === 'development';
   const iconPath = isDev
@@ -28,8 +28,20 @@ const createWindow = (): void => {
     
   // Create a native image from the icon file
   const icon = nativeImage.createFromPath(iconPath);
-  
-  // Create the browser window.
+  // Create a new window that does not inherit the parent's storage
+  const parentSession = BrowserWindow.getAllWindows()[0]?.webContents.session;
+  let partitionName;
+
+  if (parentSession) {
+    // For new windows, create a unique partition
+    const sessionId = Date.now().toString(36) + Math.random().toString(36).substring(2);
+    partitionName = `persist:window-${sessionId}`;
+  } else {
+    // For the first window, use the default partition
+    partitionName = 'persist:main';
+  }
+
+  // Create the browser window with appropriate session
   const mainWindow = new BrowserWindow({
     height: 600,
     width: 800,
@@ -38,14 +50,63 @@ const createWindow = (): void => {
       nodeIntegration: false,
       contextIsolation: true,
       preload: MAIN_WINDOW_PRELOAD_WEBPACK_ENTRY,
+      partition: partitionName
     },
   });
 
-  // Create the default menu
-  const menu = Menu.getApplicationMenu() || Menu.buildFromTemplate([]);
-  
-  
-  // Set as application menu
+  // Create application menu
+  const template = [
+    {
+      label: 'File',
+      submenu: [
+        {
+          label: 'New Window',
+          accelerator: 'CmdOrCtrl+N',          click: async () => {
+            await createWindow();
+          }
+        },
+        { type: 'separator' },
+        { role: 'close' }
+      ]
+    },
+    {
+      label: 'Edit',
+      submenu: [
+        { role: 'undo' },
+        { role: 'redo' },
+        { type: 'separator' },
+        { role: 'cut' },
+        { role: 'copy' },
+        { role: 'paste' },
+        { role: 'delete' },
+        { type: 'separator' },
+        { role: 'selectAll' }
+      ]
+    },
+    {
+      label: 'View',
+      submenu: [
+        { role: 'reload' },
+        { role: 'forceReload' },
+        { role: 'toggleDevTools' },
+        { type: 'separator' },
+        { role: 'resetZoom' },
+        { role: 'zoomIn' },
+        { role: 'zoomOut' },
+        { type: 'separator' },
+        { role: 'togglefullscreen' }
+      ]
+    },
+    {
+      label: 'Window',
+      submenu: [
+        { role: 'minimize' },
+        { role: 'zoom' }
+      ]
+    }
+  ];
+
+  const menu = Menu.buildFromTemplate(template as Electron.MenuItemConstructorOptions[]);
   Menu.setApplicationMenu(menu);
 
   // Set Content Security Policy
@@ -72,7 +133,9 @@ const createWindow = (): void => {
   }
 };
 
-app.on('ready', createWindow);
+app.whenReady().then(async () => {
+  await createWindow();
+});
 
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') {
@@ -80,9 +143,9 @@ app.on('window-all-closed', () => {
   }
 });
 
-app.on('activate', () => {
+app.on('activate', async () => {
   if (BrowserWindow.getAllWindows().length === 0) {
-    createWindow();
+    await createWindow();
   }
 });
 
