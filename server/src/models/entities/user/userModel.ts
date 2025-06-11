@@ -1,5 +1,7 @@
-import {Model,DataTypes} from 'sequelize';
+import {Model,DataTypes,Op} from 'sequelize';
 import sequelize from '../../db';
+import Role from './roleModel';
+import Ballot from '../voting/ballotModel';
 
 class User extends Model{
     public id: number;
@@ -39,6 +41,37 @@ User.init({    id:{
     sequelize,
     modelName:'User',
     tableName:'users'
+});
+
+// Hook to handle ballot reassignment before user deletion
+User.beforeDestroy(async (user: User) => {
+    try {
+        // Find a valid admin to transfer ballots to
+        const nextAdmin = await User.findOne({
+            where: {
+                id: { [Op.ne]: user.id } // Not the user being deleted
+            },
+            include: [{
+                model: Role,
+                where: {
+                    name: { [Op.in]: ['admin', 'DefaultAdmin'] }
+                }
+            }]
+        });
+
+        if (!nextAdmin) {
+            throw new Error('Cannot delete the last admin user');
+        }
+
+        // Reassign all ballots to the next admin
+        await Ballot.update(
+            { adminId: nextAdmin.id },
+            { where: { adminId: user.id } }
+        );
+
+    } catch (error) {
+        throw error;
+    }
 });
 
 export default User;

@@ -8,16 +8,11 @@ import {
     useTheme, 
     useMediaQuery,
     Divider,
-    List,
-    ListItem,
-    ListItemIcon,
-    ListItemText,
     Collapse
 } from '@mui/material';
 import AccountCircleIcon from '@mui/icons-material/AccountCircle';
 import DashboardIcon from '@mui/icons-material/Dashboard';
 import PeopleIcon from '@mui/icons-material/People';
-import HowToVoteIcon from '@mui/icons-material/HowToVote';
 import Brightness4Icon from '@mui/icons-material/Brightness4';
 import Brightness7Icon from '@mui/icons-material/Brightness7';
 import ExitToAppIcon from '@mui/icons-material/ExitToApp';
@@ -127,14 +122,6 @@ export const Navbar: React.FC<NavbarProps> = ({ onThemeToggle, isDarkMode }) => 
                                 sx={buttonSx}
                             >
                                 {!isMinimal && 'Manage Users'}
-                            </Button>
-                            <Button 
-                                color="inherit" 
-                                onClick={() => handleNavigation('/admin/elections')}
-                                startIcon={<HowToVoteIcon />}
-                                sx={buttonSx}
-                            >
-                                {!isMinimal && 'Manage Elections'}
                             </Button>
                         </>
                     )}

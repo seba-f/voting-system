@@ -2,6 +2,7 @@ import { useLocation, useNavigate, Navigate } from "react-router-dom";
 import { useAuth } from "../auth/AuthContext";
 import { useState } from "react";
 import { Box, TextField, Button, Typography, Container, Alert, Card, CardContent, FormControlLabel, Checkbox } from "@mui/material";
+import { useAlert } from "../components/AlertContext";
 import logo from '../assets/logo_full.svg';
 
 export const LoginPage: React.FC = () => {
@@ -11,19 +12,19 @@ export const LoginPage: React.FC = () => {
         type: 'auth' | 'generic' | null;
         message: string;
     }>({ type: null, message: '' });
-    const [saveSession, setSaveSession] = useState(false);
-    const { login, user } = useAuth();
+    const [saveSession, setSaveSession] = useState(false);    const { login, user } = useAuth();
     const navigate = useNavigate();
     const location = useLocation();
+    const { showAlert } = useAlert();
 
     if (user) {
         return <Navigate to="/dashboard" replace />;
     }
 
     const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
-        try {
+        e.preventDefault();        try {
             await login(email, password, saveSession);
+            showAlert('Login successful', 'success');
             const from = location.state?.from?.pathname || '/dashboard';
             navigate(from, { replace: true });
         } catch (err: any) {

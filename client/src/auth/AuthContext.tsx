@@ -8,6 +8,7 @@
 import React, { createContext, useContext, useEffect, useState, useCallback, useRef } from "react";
 import API from "../api/axios";
 import { SessionExpiryDialog } from '../components/SessionExpiryDialog';
+import { useAlert } from '../components/AlertContext';
 import { SESSION_DURATION_MS, WARNING_BEFORE_MS, formatTimeRemaining } from '../config/sessionConfig';
 
 /** Represents a user in the application */
@@ -37,6 +38,7 @@ export const AuthProvider = ({children}: {children: React.ReactNode}) => {
     const [token, setToken] = useState<string | null>(null);
     const [showSessionDialog, setShowSessionDialog] = useState(false);
     const [countdown, setCountdown] = useState(Math.floor(WARNING_BEFORE_MS / 1000));
+    const { showAlert } = useAlert();
     
     // Timer refs for session expiry warning and countdown
     const expiryTimerRef = useRef<NodeJS.Timeout | null>(null);
@@ -57,31 +59,29 @@ export const AuthProvider = ({children}: {children: React.ReactNode}) => {
     // Handle session cleanup and user logout
     const logout = useCallback(async () => {
         clearTimers();
-        // Get token directly from localStorage instead of state
         const tokenToClear = localStorage.getItem('token');
-        console.log('Current token state:', token);
-        console.log('Token from localStorage:', tokenToClear);
+        showAlert('Signing out...', 'info');
         
         try {
             if(tokenToClear) {
-                console.log('Making logout API call with token:', tokenToClear);
                 await API.post('/logout', {}, {
                     headers: { Authorization: `Bearer ${tokenToClear}` },
                     timeout: 5000
                 });
                 
-                // Clear everything after successful API call
                 setToken(null);
                 setUser(null);
                 localStorage.removeItem('token');
                 localStorage.removeItem('user');
                 localStorage.removeItem('sessionExpiry');
                 delete API.defaults.headers.common['Authorization'];
+                showAlert('Successfully signed out', 'success');
             }
         } catch (error) {
             console.error('Logout error:', error);
+            showAlert('Error during sign out', 'error');
         }
-    }, [clearTimers, token]);
+    }, [clearTimers, token, showAlert]);
 
     // Set up session expiry timer
     const setupSessionExpiry = useCallback((persist: boolean) => {
@@ -98,6 +98,7 @@ export const AuthProvider = ({children}: {children: React.ReactNode}) => {
         expiryTimerRef.current = setTimeout(() => {
             setShowSessionDialog(true);
             setCountdown(Math.floor(WARNING_BEFORE_MS / 1000));
+            showAlert('Your session will expire soon', 'warning');
             
             const startTime = Date.now();
             const warningDuration = WARNING_BEFORE_MS;
@@ -109,16 +110,18 @@ export const AuthProvider = ({children}: {children: React.ReactNode}) => {
                 
                 if (remainingMs <= 0) {
                     clearTimers();
+                    showAlert('Session expired', 'error');
                     logout();
                 } else {
                     setCountdown(Math.ceil(remainingMs / 1000));
                 }
-            }, 100);
+            }, 1000);
         }, warningDelay);
-    }, [clearTimers, logout]);
+    }, [clearTimers, logout, showAlert]);
 
     const login = async (email: string, password: string, persist: boolean = false) => {
         try {
+            showAlert('Signing in...', 'info');
             const response = await API.post('/login', {email, password});
             const {token: newToken, user: userData} = response.data;
 
@@ -139,7 +142,9 @@ export const AuthProvider = ({children}: {children: React.ReactNode}) => {
 
             // Set up session expiry after everything else
             setupSessionExpiry(persist);
+            showAlert('Successfully signed in', 'success');
         } catch (error) {
+            showAlert('Login failed', 'error');
             throw error;
         }
     };
@@ -161,8 +166,10 @@ export const AuthProvider = ({children}: {children: React.ReactNode}) => {
             // Reset timers and hide dialog
             clearTimers();
             setupSessionExpiry(true);
+            showAlert(`New expiry time: ${new Date(expiryTime).toLocaleString()}`, 'info');
         } catch (error) {
             console.error('Failed to extend session:', error);
+            showAlert('Failed to extend session, signing out...', 'error');
             await logout();
         }
     };

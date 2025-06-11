@@ -5,6 +5,8 @@ import './models/entities'
 import fs from 'fs';
 import path from 'path';
 import authRouter from './routes/authRouter';
+import usersRouter from './routes/usersRouter';
+import rolesRouter from './routes/rolesRouter';
 import { Session, User } from './models/entities';
 import cors from 'cors';
 import { Op } from 'sequelize';
@@ -19,7 +21,9 @@ app.use(cors({
 }));
 
 app.use(express.json());
-app.use('/api',authRouter);
+app.use('/api', authRouter);
+app.use('/api', usersRouter);
+app.use('/api', rolesRouter);
 
 // Function to cleanup invalid sessions on server start
 const cleanupSessions = async () => {

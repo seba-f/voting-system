@@ -14,7 +14,7 @@ import { registerDefaultAdmin, login, logout, extendSession } from '../controlle
 const router = express.Router();
 
 // Development route for initial setup
-router.post('/register-admin', registerDefaultAdmin);
+router.post('/auth/register-admin', registerDefaultAdmin);
 
 // Authentication routes
 router.post('/login', login);
