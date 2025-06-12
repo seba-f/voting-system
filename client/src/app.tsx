@@ -16,6 +16,7 @@ import { Dashboard } from "./pages/Dashboard";
 import { Navbar } from "./components/Navbar";
 import { UsersList } from "./pages/admin/UsersList";
 import { NewUserPage } from "./pages/admin/NewUserPage";
+import TitleBar from "./components/TitleBar";
 
 interface AppLayoutProps {
 	isDarkMode: boolean;
@@ -23,29 +24,31 @@ interface AppLayoutProps {
 }
 
 const AppLayout: React.FC<AppLayoutProps> = ({ isDarkMode, onThemeToggle }) => {
-	const theme = useTheme();
-	return (
-		<Box sx={{ display: "flex" }}>
-			<Navbar onThemeToggle={onThemeToggle} isDarkMode={isDarkMode} />
-			<Box
-				component="main"
-				sx={{
-					flexGrow: 1,
-					width: {
-						xs: `calc(100% - ${64}px)`, // DRAWER_WIDTH_MINIMAL
-						md: `calc(100% - ${240}px)`, // DRAWER_WIDTH
-					},
-					p: 3,
-					transition: theme.transitions.create(["margin", "width"], {
-						easing: theme.transitions.easing.sharp,
-						duration: theme.transitions.duration.enteringScreen,
-					}),
-				}}
-			>
-				<Outlet />
-			</Box>
-		</Box>
-	);
+    const theme = useTheme();
+    return (        <Box sx={{ display: "flex", flexDirection: "column", height: "100vh" }}>
+            <TitleBar />
+            <Box sx={{ display: "flex", flex: 1, mt: '32px' }}>
+                <Navbar onThemeToggle={onThemeToggle} isDarkMode={isDarkMode} />
+                <Box
+                    component="main"
+                    sx={{
+                        flexGrow: 1,
+                        width: {
+                            xs: `calc(100% - ${64}px)`,
+                            md: `calc(100% - ${240}px)`,
+                        },
+                        p: 3,
+                        transition: theme.transitions.create(["margin", "width"], {
+                            easing: theme.transitions.easing.sharp,
+                            duration: theme.transitions.duration.enteringScreen,
+                        }),
+                    }}
+                >
+                    <Outlet />
+                </Box>
+            </Box>
+        </Box>
+    );
 };
 
 const App: React.FC = () => {

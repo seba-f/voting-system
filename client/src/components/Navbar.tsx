@@ -58,8 +58,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onThemeToggle, isDarkMode }) => 
         m:0
     };
 
-    return (
-        <Drawer
+    return (        <Drawer
             variant="permanent"
             sx={{
                 width: isMinimal ? DRAWER_WIDTH_MINIMAL : DRAWER_WIDTH,
@@ -69,6 +68,8 @@ export const Navbar: React.FC<NavbarProps> = ({ onThemeToggle, isDarkMode }) => 
                     backgroundColor: theme.palette.background.paper,
                     color: theme.palette.text.primary,
                     overflowX: 'hidden',
+                    top: '32px',
+                    height: 'calc(100% - 32px)',
                 }
             }}
         >

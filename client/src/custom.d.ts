@@ -26,6 +26,9 @@ declare module '*.gif' {
 interface Window {
     electron: {
         onSetSessionDuration: (callback: (minutes: number) => void) => void;
+        minimize: () => void;
+        maximize: () => void;
+        close: () => void;
     }
     sessionUtils: {
         setTestDuration: (minutes: number) => {

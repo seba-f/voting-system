@@ -1,5 +1,5 @@
 import path from 'path';
-import { app, BrowserWindow, Menu, nativeImage, session } from 'electron';
+import { app, BrowserWindow, Menu, nativeImage, session, ipcMain } from 'electron';
 
 declare const MAIN_WINDOW_PRELOAD_WEBPACK_ENTRY: string;
 declare const MAIN_WINDOW_WEBPACK_ENTRY: string;
@@ -18,6 +18,11 @@ if (process.env.NODE_ENV === 'development') {
     });
   } catch (_) { console.log('Error'); }
 }
+
+// Setup get-window-id handler
+ipcMain.on('get-window-id', (event) => {
+  event.returnValue = event.sender.id;
+});
 
 const createWindow = async (): Promise<void> => {
   // Set up icon paths for different environments
@@ -46,12 +51,57 @@ const createWindow = async (): Promise<void> => {
     height: 600,
     width: 800,
     icon,
+    frame: false, // Remove default frame
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true,
       preload: MAIN_WINDOW_PRELOAD_WEBPACK_ENTRY,
       partition: partitionName
     },
+  });
+  // Handle window-specific events by using webContents ID
+  const windowId = mainWindow.webContents.id;
+
+  // Remove any existing handlers for this window ID (cleanup)
+  ipcMain.removeHandler(`minimize-window-${windowId}`);
+  ipcMain.removeHandler(`maximize-window-${windowId}`);
+  ipcMain.removeHandler(`close-window-${windowId}`);
+
+  // Add IPC handlers for window controls
+  ipcMain.handle(`minimize-window-${windowId}`, () => {
+    if (!mainWindow.isDestroyed()) {
+      mainWindow.minimize();
+    }
+  });
+
+  ipcMain.handle(`maximize-window-${windowId}`, () => {
+    if (!mainWindow.isDestroyed()) {
+      if (mainWindow.isMaximized()) {
+        mainWindow.unmaximize();
+      } else {
+        mainWindow.maximize();
+      }
+    }
+  });
+
+  ipcMain.handle(`close-window-${windowId}`, () => {
+    if (!mainWindow.isDestroyed()) {
+      mainWindow.close();
+    }
+  });
+
+  // Add window-specific close handler
+  mainWindow.on('closed', () => {
+    // Clean up IPC handlers for this window
+    ipcMain.removeHandler(`minimize-window-${windowId}`);
+    ipcMain.removeHandler(`maximize-window-${windowId}`);
+    ipcMain.removeHandler(`close-window-${windowId}`);
+
+    // Check if there are any windows left
+    if (BrowserWindow.getAllWindows().length === 0) {
+      // Only quit the app when all windows are closed
+      app.quit();
+    }
   });
 
   // Create application menu

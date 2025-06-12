@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Box, TextField, Button, Typography, Container, Alert, Card, CardContent, FormControlLabel, Checkbox } from "@mui/material";
 import { useAlert } from "../components/AlertContext";
 import logo from '../assets/logo_full.svg';
+import TitleBar from "../components/TitleBar";
 
 export const LoginPage: React.FC = () => {
     const [email, setEmail] = useState('');
@@ -12,7 +13,8 @@ export const LoginPage: React.FC = () => {
         type: 'auth' | 'generic' | null;
         message: string;
     }>({ type: null, message: '' });
-    const [saveSession, setSaveSession] = useState(false);    const { login, user } = useAuth();
+    const [saveSession, setSaveSession] = useState(false);    
+    const { login, user } = useAuth();
     const navigate = useNavigate();
     const location = useLocation();
     const { showAlert } = useAlert();
@@ -22,7 +24,8 @@ export const LoginPage: React.FC = () => {
     }
 
     const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();        try {
+        e.preventDefault();
+        try {
             await login(email, password, saveSession);
             showAlert('Login successful', 'success');
             const from = location.state?.from?.pathname || '/dashboard';
@@ -44,69 +47,73 @@ export const LoginPage: React.FC = () => {
     };
 
     return (
-        <Container maxWidth="sm" sx={{
-            minHeight: '100vh',
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: 4
-        }}>
-            <img 
-                src={logo} 
-                alt="Logo" 
-                style={{ 
-                    height: 60,
-                    width: 'auto'
-                }} 
-            />
-            <Card sx={{ width: '100%' }}>
-                <CardContent>
-                    <Box component="form" onSubmit={handleSubmit} sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                        <Typography variant="h5" component="h1" align="center" gutterBottom>
-                            Login
-                        </Typography>
-                        {error.type && (
-                            <Alert severity="error">
-                                {error.message}
-                            </Alert>
-                        )}
-                        <TextField
-                            required
-                            fullWidth
-                            label="Email"
-                            type="email"
-                            value={email}
-                            onChange={(e) => setEmail(e.target.value)}
-                        />
-                        <TextField
-                            required
-                            fullWidth
-                            label="Password"
-                            type="password"
-                            value={password}
-                            onChange={(e) => setPassword(e.target.value)}
-                        />
-                        <FormControlLabel
-                            control={
-                                <Checkbox
-                                    checked={saveSession}
-                                    onChange={(e) => setSaveSession(e.target.checked)}
-                                />
-                            }
-                            label="Keep me signed in for 1 hour"
-                        />
-                        <Button
-                            type="submit"
-                            variant="contained"
-                            fullWidth
-                            size="large"
-                        >
-                            Login
-                        </Button>
-                    </Box>
-                </CardContent>
-            </Card>
-        </Container>
+        <Box sx={{ height: '100vh', display: 'flex', flexDirection: 'column' }}>
+            <TitleBar />
+            <Container maxWidth="sm" sx={{
+                flex: 1,
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 4,
+                py: 4
+            }}>
+                <img 
+                    src={logo} 
+                    alt="Logo" 
+                    style={{ 
+                        height: 60,
+                        width: 'auto'
+                    }} 
+                />
+                <Card sx={{ width: '100%' }}>
+                    <CardContent>
+                        <Box component="form" onSubmit={handleSubmit} sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                            <Typography variant="h5" component="h1" align="center" gutterBottom>
+                                Login
+                            </Typography>
+                            {error.type && (
+                                <Alert severity="error">
+                                    {error.message}
+                                </Alert>
+                            )}
+                            <TextField
+                                required
+                                fullWidth
+                                label="Email"
+                                type="email"
+                                value={email}
+                                onChange={(e) => setEmail(e.target.value)}
+                            />
+                            <TextField
+                                required
+                                fullWidth
+                                label="Password"
+                                type="password"
+                                value={password}
+                                onChange={(e) => setPassword(e.target.value)}
+                            />
+                            <FormControlLabel
+                                control={
+                                    <Checkbox
+                                        checked={saveSession}
+                                        onChange={(e) => setSaveSession(e.target.checked)}
+                                    />
+                                }
+                                label="Keep me signed in for 1 hour"
+                            />
+                            <Button
+                                type="submit"
+                                variant="contained"
+                                fullWidth
+                                size="large"
+                            >
+                                Login
+                            </Button>
+                        </Box>
+                    </CardContent>
+                </Card>
+            </Container>
+        </Box>
     );
 };
