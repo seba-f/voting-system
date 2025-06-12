@@ -13,6 +13,7 @@ import {
 import AccountCircleIcon from "@mui/icons-material/AccountCircle";
 import DashboardIcon from "@mui/icons-material/Dashboard";
 import PeopleIcon from "@mui/icons-material/People";
+import CategoryIcon from "@mui/icons-material/Category";
 import Brightness4Icon from "@mui/icons-material/Brightness4";
 import Brightness7Icon from "@mui/icons-material/Brightness7";
 import ExitToAppIcon from "@mui/icons-material/ExitToApp";
@@ -125,14 +126,21 @@ export const Navbar: React.FC<NavbarProps> = ({
 					</Button>
 
 					{isAdmin() && (
-						<>
-							<Button
+						<>							<Button
 								color="inherit"
 								onClick={() => handleNavigation("/admin/users")}
 								startIcon={<PeopleIcon />}
 								sx={buttonSx}
 							>
 								{!isMinimal && "Manage Users"}
+							</Button>
+                            <Button
+								color="inherit"
+								onClick={() => handleNavigation("/admin/categories")}
+								startIcon={<CategoryIcon />}
+								sx={buttonSx}
+							>
+								{!isMinimal && "Categories"}
 							</Button>
 						</>
 					)}

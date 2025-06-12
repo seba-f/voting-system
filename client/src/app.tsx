@@ -16,6 +16,7 @@ import { Dashboard } from "./pages/Dashboard";
 import { Navbar } from "./components/Navbar";
 import { UsersList } from "./pages/admin/UsersList";
 import { NewUserPage } from "./pages/admin/NewUserPage";
+import { CategoriesList } from "./pages/admin/CategoriesList";
 import TitleBar from "./components/TitleBar";
 
 interface AppLayoutProps {
@@ -85,10 +86,10 @@ const App: React.FC = () => {
 									path="/admin/*"
 									element={
 										<ProtectedRoute requireAdmin>
-											{" "}
-											<Routes>
+											{" "}                                        <Routes>
 												<Route path="users" element={<UsersList />} />
 												<Route path="users/new" element={<NewUserPage />} />
+                                                <Route path="categories" element={<CategoriesList />} />
 											</Routes>
 										</ProtectedRoute>
 									}
