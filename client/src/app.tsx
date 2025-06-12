@@ -27,7 +27,7 @@ const AppLayout: React.FC<AppLayoutProps> = ({ isDarkMode, onThemeToggle }) => {
     const theme = useTheme();
     return (        <Box sx={{ display: "flex", flexDirection: "column", height: "100vh" }}>
             <TitleBar />
-            <Box sx={{ display: "flex", flex: 1, mt: '32px' }}>
+            <Box sx={{ display: "flex", flex: 1 }}>
                 <Navbar onThemeToggle={onThemeToggle} isDarkMode={isDarkMode} />
                 <Box
                     component="main"

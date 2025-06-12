@@ -4,9 +4,12 @@ import MinimizeIcon from '@mui/icons-material/Remove';
 import MaximizeIcon from '@mui/icons-material/CropSquare';
 import CloseIcon from '@mui/icons-material/Close';
 import logoCheck from '../assets/logo_check.svg';
+import { useAuth } from '../auth/AuthContext';
+import API from '../api/axios';
 
 const TitleBar: React.FC = () => {
     const theme = useTheme();
+    const { user } = useAuth();
 
     const handleMinimize = () => {
         window.electron?.minimize();
@@ -14,9 +17,14 @@ const TitleBar: React.FC = () => {
 
     const handleMaximize = () => {
         window.electron?.maximize();
-    };
-
-    const handleClose = () => {
+    };    const handleClose = async () => {
+        if (user) {
+            try {
+                await API.put(`/users/${user.id}/active-status`, { isActive: false });
+            } catch (error) {
+                console.error('Error updating user active status:', error);
+            }
+        }
         window.electron?.close();
     };
 

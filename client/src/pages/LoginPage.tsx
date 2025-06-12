@@ -19,6 +19,36 @@ export const LoginPage: React.FC = () => {
     const location = useLocation();
     const { showAlert } = useAlert();
 
+    const handleDevLogin = async (type: 'admin' | 'user1') => {
+        const credentials = {
+            admin: { email: 'admin@example.com', password: 'pass' },
+            user1: { email: 'user1@email.com', password: 'user1' }
+        };
+        
+        try {
+            const { email, password } = credentials[type];
+            setEmail(email);
+            setPassword(password);
+            await login(email, password, saveSession);
+            showAlert('Login successful', 'success');
+            const from = location.state?.from?.pathname || '/dashboard';
+            navigate(from, { replace: true });
+        } catch (err: any) {
+            if (err?.message?.includes('auth') || err?.code?.includes('auth')) {
+                setError({
+                    type: 'auth',
+                    message: 'Invalid email or password'
+                });
+            } else {
+                setError({
+                    type: 'generic',
+                    message: 'An error occurred. Please try again later.'
+                });
+            }
+            console.error('Login error: ', err);
+        }
+    };
+
     if (user) {
         return <Navigate to="/dashboard" replace />;
     }
@@ -110,6 +140,27 @@ export const LoginPage: React.FC = () => {
                             >
                                 Login
                             </Button>
+                            
+                            {process.env.NODE_ENV === 'development' && (
+                                <Box sx={{ mt: 2, display: 'flex', gap: 2 }}>
+                                    <Button
+                                        fullWidth
+                                        variant="outlined"
+                                        color="primary"
+                                        onClick={() => {handleDevLogin('admin')}}
+                                    >
+                                        Dev: Login as Admin
+                                    </Button>
+                                    <Button
+                                        fullWidth
+                                        variant="outlined"
+                                        color="primary"
+                                        onClick={() => handleDevLogin('user1')}
+                                    >
+                                        Dev: Login as User1
+                                    </Button>
+                                </Box>
+                            )}
                         </Box>
                     </CardContent>
                 </Card>
