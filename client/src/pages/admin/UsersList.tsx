@@ -39,6 +39,8 @@ export const UsersList: React.FC = () => {
     const [selectedRole, setSelectedRole] = useState<string>('all');
     const [availableRoles, setAvailableRoles] = useState<string[]>([]);
     const [isRefreshing, setIsRefreshing] = useState(false);
+    const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive'>('all');
+    const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
 
     const theme = useTheme();
 
@@ -113,10 +115,21 @@ export const UsersList: React.FC = () => {
                 <Typography color="error">{error}</Typography>
             </Box>
         );
-    }    // Filter users based on selected role
-    const filteredUsers = selectedRole === 'all' 
-        ? users 
-        : users.filter(user => user.roles.some(role => role.name === selectedRole));
+    }    // Filter users based on selected role and status
+    const filteredUsers = users
+        .filter(user => selectedRole === 'all' ? true : user.roles.some(role => role.name === selectedRole))
+        .filter(user => {
+            if (statusFilter === 'all') return true;
+            return statusFilter === 'active' ? user.isActive : !user.isActive;
+        })
+        // Sort users by username
+        .sort((a, b) => {
+            if (currentUser?.id === a.id) return -1;
+            if (currentUser?.id === b.id) return 1;
+            return sortOrder === 'asc' 
+                ? a.username.localeCompare(b.username)
+                : b.username.localeCompare(a.username);
+        });
 
     // Calculate statistics
     const totalUsers = users.length;
@@ -124,6 +137,10 @@ export const UsersList: React.FC = () => {
 
     const handleAddUser = () => {
         navigate('/admin/users/new');
+    };
+
+    const toggleSortOrder = () => {
+        setSortOrder(prev => prev === 'asc' ? 'desc' : 'asc');
     };
 
     return (
@@ -178,7 +195,7 @@ export const UsersList: React.FC = () => {
                     </Button>
 
                     {/* Role Filter */}
-                    <FormControl fullWidth sx={{ mb: 3 }}>
+                    <FormControl fullWidth sx={{ mb: 2 }}>
                         <InputLabel>Filter by Role</InputLabel>
                         <Select
                             value={selectedRole}
@@ -191,6 +208,30 @@ export const UsersList: React.FC = () => {
                             ))}
                         </Select>
                     </FormControl>
+
+                    {/* Status Filter */}
+                    <FormControl fullWidth sx={{ mb: 2 }}>
+                        <InputLabel>Filter by Status</InputLabel>
+                        <Select
+                            value={statusFilter}
+                            label="Filter by Status"
+                            onChange={(e) => setStatusFilter(e.target.value as 'all' | 'active' | 'inactive')}
+                        >
+                            <MenuItem value="all">All Users</MenuItem>
+                            <MenuItem value="active">Active Users</MenuItem>
+                            <MenuItem value="inactive">Inactive Users</MenuItem>
+                        </Select>
+                    </FormControl>
+
+                    {/* Sort Order */}
+                    <Button
+                        variant="outlined"
+                        fullWidth
+                        sx={{ mb: 3 }}
+                        onClick={toggleSortOrder}
+                    >
+                        Sort by Username: {sortOrder === 'asc' ? '↑' : '↓'}
+                    </Button>
 
                     {/* Statistics Cards */}
                     <Typography variant="h6" gutterBottom>Statistics</Typography>

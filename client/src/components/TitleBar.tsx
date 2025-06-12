@@ -20,9 +20,12 @@ const TitleBar: React.FC = () => {
     };    const handleClose = async () => {
         if (user) {
             try {
-                await API.put(`/users/${user.id}/active-status`, { isActive: false });
+                await Promise.all([
+                    API.put(`/users/${user.id}/active-status`, { isActive: false }),
+                    API.put(`/sessions/active-status`, { isActive: false })
+                ]);
             } catch (error) {
-                console.error('Error updating user active status:', error);
+                console.error('Error updating active status:', error);
             }
         }
         window.electron?.close();

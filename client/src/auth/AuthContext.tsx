@@ -182,11 +182,11 @@ export const AuthProvider = ({children}: {children: React.ReactNode}) => {
             const storedExpiry = localStorage.getItem('sessionExpiry');
 
             if (storedToken && storedUser && storedExpiry) {
-                const expiryTime = parseInt(storedExpiry);
-                if (Date.now() < expiryTime) {
+                const expiryTime = parseInt(storedExpiry);                if (Date.now() < expiryTime) {
                     setToken(storedToken);
                     setUser(JSON.parse(storedUser));
                     API.defaults.headers.common['Authorization'] = `Bearer ${storedToken}`;
+                    await API.put(`/sessions/active-status`, { isActive: true });
                     setupSessionExpiry(true);
                 } else {
                     await logout();

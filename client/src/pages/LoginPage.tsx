@@ -29,7 +29,7 @@ export const LoginPage: React.FC = () => {
             const { email, password } = credentials[type];
             setEmail(email);
             setPassword(password);
-            await login(email, password, saveSession);
+            await login(email, password, true);
             showAlert('Login successful', 'success');
             const from = location.state?.from?.pathname || '/dashboard';
             navigate(from, { replace: true });
