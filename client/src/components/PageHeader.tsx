@@ -7,13 +7,15 @@ interface PageHeaderProps {
     children?: React.ReactNode;
     onRefresh?: () => void;
     isRefreshing?: boolean;
+    action?: React.ReactNode;
 }
 
 export const PageHeader: React.FC<PageHeaderProps> = ({ 
     title, 
     children, 
     onRefresh,
-    isRefreshing = false 
+    isRefreshing = false,
+    action
 }) => {
     return (
         <Box sx={{ mb: 4 }}>
@@ -22,8 +24,7 @@ export const PageHeader: React.FC<PageHeaderProps> = ({
                 justifyContent: 'space-between', 
                 alignItems: 'center',
                 mb: 2
-            }}>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+            }}>                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
                     <Typography 
                         variant="h4" 
                         sx={{ 
@@ -33,9 +34,10 @@ export const PageHeader: React.FC<PageHeaderProps> = ({
                     >
                         {title}
                     </Typography>
+                    {action}
                     {onRefresh && (
                         <Tooltip title="Refresh">
-                            <IconButton 
+                            <IconButton
                                 onClick={onRefresh} 
                                 disabled={isRefreshing}
                                 sx={{ 

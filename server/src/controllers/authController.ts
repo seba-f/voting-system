@@ -5,7 +5,7 @@
  */
 
 import bcrypt from 'bcrypt';
-import { Request, Response } from 'express';
+import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 import { Op } from 'sequelize';
 import { JWT_EXPIRY, SESSION_DURATION_MS } from '../config/sessionConfig';
@@ -13,6 +13,11 @@ import Role from '../models/entities/user/roleModel';
 import Session from '../models/entities/user/sessionModel';
 import User from '../models/entities/user/userModel';
 import UserRoles from '../models/entities/intermediary/userRolesModel';
+
+// Extend Request type to include user property
+export interface AuthRequest extends Request {
+    user?: any;
+}
 
 /**
  * Creates a default admin user for initial system setup
@@ -277,5 +282,50 @@ export const extendSession = async (req: Request, res: Response): Promise<void> 
     } catch (err) {
         console.error('Session extension error:', err);
         res.status(500).json({ message: 'Error extending session' });
+    }
+};
+
+export const verifyToken = async (req: AuthRequest, res: Response, next: NextFunction) => {
+    try {
+        const authHeader = req.headers.authorization;
+        if (!authHeader || !authHeader.startsWith('Bearer ')) {
+            res.status(401).json({ message: 'No token provided' });
+            return;
+        }
+
+        const token = authHeader.split(' ')[1];
+        const session = await Session.findOne({
+            where: {
+                token,
+                isActive: true,
+                expiresAt: {
+                    [Op.gt]: new Date()
+                }
+            }
+        });
+
+        if (!session) {
+            res.status(401).json({ message: 'Invalid or expired session' });
+            return;
+        }
+
+        const decodedToken = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key') as any;
+        req.user = await User.findByPk(decodedToken.id, {
+            include: [{
+                model: Role,
+                through: { attributes: [] },
+                attributes: ['name']
+            }]
+        });
+
+        if (!req.user) {
+            res.status(401).json({ message: 'User not found' });
+            return;
+        }
+
+        next();
+    } catch (error) {
+        console.error('Token verification error:', error);
+        res.status(401).json({ message: 'Invalid token' });
     }
 };

@@ -17,6 +17,7 @@ import { Navbar } from "./components/Navbar";
 import { UsersList } from "./pages/admin/UsersList";
 import { NewUserPage } from "./pages/admin/NewUserPage";
 import { CategoriesList } from "./pages/admin/CategoriesList";
+import { ManageCategories } from "./pages/admin/ManageCategories";
 import TitleBar from "./components/TitleBar";
 
 interface AppLayoutProps {
@@ -90,6 +91,7 @@ const App: React.FC = () => {
 												<Route path="users" element={<UsersList />} />
 												<Route path="users/new" element={<NewUserPage />} />
                                                 <Route path="categories" element={<CategoriesList />} />
+                                                <Route path="categories/manage" element={<ManageCategories />} />
 											</Routes>
 										</ProtectedRoute>
 									}

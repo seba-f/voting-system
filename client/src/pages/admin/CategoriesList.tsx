@@ -57,8 +57,8 @@ export const CategoriesList: React.FC = () => {
     const [selectedRole, setSelectedRole] = useState<string>('all');
     const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
     const [newCategoryName, setNewCategoryName] = useState('');
-    const [availableRoles, setAvailableRoles] = useState<{ id: number; name: string }[]>([]);
-    const [selectedRoles, setSelectedRoles] = useState<Role[]>([]);
+    const [availableRoles, setAvailableRoles] = useState<Role[]>([]);
+    const [selectedRoleIds, setSelectedRoleIds] = useState<number[]>([]);
     const [isCreateFormExpanded, setIsCreateFormExpanded] = useState(false);
 
     const fetchCategories = async (showLoadingState = true) => {
@@ -109,11 +109,11 @@ export const CategoriesList: React.FC = () => {
         try {
             await API.post('/categories', { 
                 name: newCategoryName.trim(),
-                roleIds: selectedRoles.map(role => role.id)
+                roleIds: selectedRoleIds
             });
             showAlert('Category created successfully', 'success');
             setNewCategoryName('');
-            setSelectedRoles([]);
+            setSelectedRoleIds([]);
             setIsCreateFormExpanded(false);
             fetchCategories(false);
         } catch (err: any) {
@@ -131,7 +131,7 @@ export const CategoriesList: React.FC = () => {
     };
 
     const handleRoleToggle = (roleId: number) => {
-        setSelectedRoles(prev => {
+        setSelectedRoleIds(prev => {
             if (prev.includes(roleId)) {
                 return prev.filter(id => id !== roleId);
             }
@@ -224,8 +224,8 @@ export const CategoriesList: React.FC = () => {
                                       <Autocomplete
                                         multiple
                                         disableCloseOnSelect
-                                        value={selectedRoles}
-                                        onChange={(_, newValue) => setSelectedRoles(newValue)}
+                                        value={selectedRoleIds.map(id => availableRoles.find(role => role.id === id)).filter(Boolean)}
+                                        onChange={(_, newValue) => setSelectedRoleIds(newValue.map(role => role.id))}
                                         options={availableRoles}
                                         getOptionLabel={(option) => option.name}
                                         renderOption={(props, option, { selected }) => (
@@ -265,7 +265,7 @@ export const CategoriesList: React.FC = () => {
                                             <TextField
                                                 {...params}
                                                 label="Assign Roles"
-                                                placeholder={selectedRoles.length ? "Add more roles..." : "Search roles..."}
+                                                placeholder={selectedRoleIds.length ? "Add more roles..." : "Search roles..."}
                                             />
                                         )}
                                         renderTags={(value, getTagProps) =>

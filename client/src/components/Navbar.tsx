@@ -142,6 +142,14 @@ export const Navbar: React.FC<NavbarProps> = ({
 							>
 								{!isMinimal && "Categories"}
 							</Button>
+                            <Button
+								color="inherit"
+								onClick={() => handleNavigation("/admin/categories/manage")}
+								startIcon={<CategoryIcon />}
+								sx={buttonSx}
+							>
+								{!isMinimal && "Ballot Management"}
+							</Button>
 						</>
 					)}
 				</Box>

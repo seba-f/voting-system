@@ -5,10 +5,10 @@ import {
 	Typography,
 	Button,
 	Box,
-	Chip,
 } from "@mui/material";
 import { format } from "date-fns";
 import { useNavigate } from "react-router-dom";
+import { MockChip } from "./MockChip";
 
 interface BallotCardProps {
 	ballot: {
@@ -35,15 +35,19 @@ export const BallotCard = React.memo((props: BallotCardProps) => {
 
 				<Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
 					{ballot.description}
-				</Typography>
-
-				<Box sx={{ display: "flex", gap: 1, mb: 2 }}>
-					<Chip label={`Type: ${ballot.type}`} size="small" color="primary" />
-					<Chip label={ballot.status} size="small" color="secondary" />
-				</Box>
-
-				<Typography variant="body2" color="text.secondary">
-					Ends: {format(new Date(ballot.endDate), "PPP")}
+				</Typography>				<Box sx={{ display: "flex", gap: 1, mb: 2 }}>
+					<MockChip 
+						label={`Type: ${ballot.type?.replace('_', ' ').toLowerCase()}`} 
+						size="small" 
+						variant="info" 
+					/>
+					<MockChip 
+						label={ballot.status || 'Active'} 
+						size="small" 
+						variant={ballot.status === 'Suspended' ? 'error' : 'success'} 
+					/>
+				</Box><Typography variant="body2" color="text.secondary">
+					Ends: {ballot.endDate ? format(new Date(ballot.endDate), "PPP 'at' p") : 'No end date set'}
 				</Typography>
 
 				<Box sx={{ mt: 2 }}>

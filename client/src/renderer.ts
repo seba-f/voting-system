@@ -29,7 +29,7 @@
 import './index.css';
 import React from 'react';
 import { createRoot } from 'react-dom/client';
-import App from './App';
+import App from './app';
 
 // Wait for the DOM to be ready
 const container = document.getElementById('root');
