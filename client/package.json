@@ -54,14 +54,20 @@
   "dependencies": {
     "@emotion/react": "^11.14.0",
     "@emotion/styled": "^11.14.0",
+    "@hello-pangea/dnd": "^18.0.1",
     "@mui/icons-material": "^7.1.1",
     "@mui/material": "^7.1.1",
     "@mui/system": "^7.1.1",
+    "@mui/x-date-pickers": "^8.5.2",
+    "@types/yup": "^0.29.14",
     "axios": "^1.9.0",
     "date-fns": "^4.1.0",
+    "dayjs": "^1.11.13",
     "electron-squirrel-startup": "^1.0.1",
+    "formik": "^2.4.6",
     "react-dom": "^17.0.0 || ^18.0.0 || ^19.0.0",
-    "react-router-dom": "^7.6.1"
+    "react-router-dom": "^7.6.1",
+    "yup": "^1.6.1"
   },
   "peerDependencies": {
     "react": "^17.0.0 || ^18.0.0 || ^19.0.0",

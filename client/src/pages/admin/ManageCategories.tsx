@@ -1,163 +1,359 @@
-import React, { useState, useEffect } from 'react';
-import {
-    Box,
+import React, { useEffect, useState } from 'react';
+import { 
+    Box, 
+    Typography, 
+    CircularProgress, 
     Button,
-    Tabs,
-    Tab,
-    Typography,
-    Container,
+    Divider,
+    FormControl,
+    InputLabel,
+    Select,
+    MenuItem,
+    Card,
+    CardContent,
+    useTheme,
+    TextField,
     Paper,
+    Collapse,
+    IconButton,
+    Grid,
+    Autocomplete,
+    Chip
 } from '@mui/material';
-import { Add as AddIcon } from '@mui/icons-material';
+import { 
+    Add as AddIcon,
+    ExpandMore as ExpandMoreIcon,
+    Sort as SortIcon,
+    FilterList as FilterListIcon
+} from '@mui/icons-material';
+import API from '../../api/axios';
 import { PageHeader } from '../../components/PageHeader';
-import { BallotCard } from '../../components/BallotCard';
-import axiosInstance from '../../api/axios';
+import { CategoryCard } from '../../components/CategoryCard';
+import { useAlert } from '../../components/AlertContext';
 
-interface TabPanelProps {
-    children?: React.ReactNode;
-    index: number;
-    value: number;
+interface Category {
+    id: number;
+    name: string;
+    roles: Array<{ name: string }>;
+    ballots: Array<{ 
+        id: number;
+        title: string;
+        status: string;
+    }>;
 }
 
-function TabPanel(props: TabPanelProps) {
-    const { children, value, index, ...other } = props;
-
-    return (
-        <div
-            role="tabpanel"
-            hidden={value !== index}
-            id={`ballots-tabpanel-${index}`}
-            aria-labelledby={`ballots-tab-${index}`}
-            {...other}
-        >
-            {value === index && (
-                <Box sx={{ p: 3 }}>
-                    {children}
-                </Box>
-            )}
-        </div>
-    );
+interface Role {
+    id: number;
+    name: string;
 }
 
-function a11yProps(index: number) {
-    return {
-        id: `ballots-tab-${index}`,
-        'aria-controls': `ballots-tabpanel-${index}`,
-    };
-}
-
-export const ManageCategories = () => {
-    const [activeTab, setActiveTab] = useState(0);
-    const [activeBallotsData, setActiveBallotsData] = useState([]);
-    const [pastBallotsData, setPastBallotsData] = useState([]);
-    const [suspendedBallotsData, setSuspendedBallotsData] = useState([]);
+export const CategoriesList: React.FC = () => {
+    const theme = useTheme();
+    const { showAlert } = useAlert();
+    const [categories, setCategories] = useState<Category[]>([]);
     const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
+    const [isRefreshing, setIsRefreshing] = useState(false);
+    const [selectedRole, setSelectedRole] = useState<string>('all');
+    const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
+    const [newCategoryName, setNewCategoryName] = useState('');
+    const [availableRoles, setAvailableRoles] = useState<Role[]>([]);
+    const [selectedRoleIds, setSelectedRoleIds] = useState<number[]>([]);
+    const [isCreateFormExpanded, setIsCreateFormExpanded] = useState(false);
+
+    const fetchCategories = async (showLoadingState = true) => {
+        if (showLoadingState) {
+            setLoading(true);
+        } else {
+            setIsRefreshing(true);
+        }
+        setError(null);
+
+        try {
+            const response = await API.get('/categories');
+            setCategories(response.data.categories);
+        } catch (err) {
+            setError('Failed to load categories');
+            console.error(err);
+        } finally {
+            setLoading(false);
+            setIsRefreshing(false);
+        }
+    };
+
+    const fetchRoles = async () => {
+        try {
+            const response = await API.get('/roles');
+            setAvailableRoles(response.data.roles);
+        } catch (err) {
+            console.error('Failed to load roles:', err);
+            showAlert('Failed to load roles', 'error');
+        }
+    };
 
     useEffect(() => {
-        const fetchBallots = async () => {
-            try {
-                setLoading(true);
-                // Fetch active ballots
-                const activeResponse = await axiosInstance.get('/ballots/active');
-                setActiveBallotsData(activeResponse.data);
-
-                // Fetch past ballots
-                const pastResponse = await axiosInstance.get('/ballots/past');
-                setPastBallotsData(pastResponse.data);
-
-                // Fetch suspended ballots
-                const suspendedResponse = await axiosInstance.get('/ballots/suspended');
-                setSuspendedBallotsData(suspendedResponse.data);
-            } catch (error) {
-                console.error('Error fetching ballots:', error);
-            } finally {
-                setLoading(false);
-            }
-        };
-
-        fetchBallots();
+        fetchCategories();
+        fetchRoles();
     }, []);
 
-    const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
-        setActiveTab(newValue);
+    const handleRefresh = () => {
+        fetchCategories(false);
     };
 
-    const handleCreateBallot = () => {
-        // TODO: Implement create ballot functionality
-        console.log('Create ballot clicked');
+    const handleCreateCategory = async () => {
+        if (!newCategoryName.trim()) {
+            showAlert('Category name is required', 'error');
+            return;
+        }
+
+        try {
+            await API.post('/categories', { 
+                name: newCategoryName.trim(),
+                roleIds: selectedRoleIds
+            });
+            showAlert('Category created successfully', 'success');
+            setNewCategoryName('');
+            setSelectedRoleIds([]);
+            setIsCreateFormExpanded(false);
+            fetchCategories(false);
+        } catch (err: any) {
+            const errorMessage = err.response?.data?.message || 'Failed to create category';
+            showAlert(errorMessage, 'error');
+        }
     };
+
+    const handleCategoryDelete = (categoryId: number) => {
+        setCategories(prev => prev.filter(cat => cat.id !== categoryId));
+    };
+
+    const toggleSortOrder = () => {
+        setSortOrder(prev => prev === 'asc' ? 'desc' : 'asc');
+    };
+
+    if (loading) {
+        return (
+            <Box sx={{ display: 'flex', justifyContent: 'center', mt: 4 }}>
+                <CircularProgress />
+            </Box>
+        );
+    }
+
+    const filteredCategories = categories
+        .filter(category => 
+            selectedRole === 'all' 
+                ? true 
+                : category.roles.some(role => role.name === selectedRole)
+        )
+        .sort((a, b) => 
+            sortOrder === 'asc' 
+                ? a.name.localeCompare(b.name) 
+                : b.name.localeCompare(a.name)
+        );
 
     return (
-        <Container maxWidth="xl">
-            <Box sx={{ mb: 4 }}>
-                <PageHeader 
-                    title="Manage Categories" 
-                    action={
-                        <Button
-                            variant="contained"
-                            startIcon={<AddIcon />}
-                            onClick={handleCreateBallot}
+        <Box sx={{ p: 3 }}>
+            <PageHeader 
+                title="Manage Categories" 
+                onRefresh={handleRefresh}
+                isRefreshing={isRefreshing}
+            />
+
+            <Box sx={{ display: 'flex', gap: 3 }}>
+                <Box sx={{ flex: 1 }}>
+                    {/* Create Category Button Card */}
+                    <Card 
+                        sx={{ 
+                            mb: 2,
+                            cursor: 'pointer',
+                            '&:hover': {
+                                bgcolor: theme.palette.action.hover
+                            }
+                        }}
+                    >
+                        <CardContent 
+                            onClick={() => setIsCreateFormExpanded(!isCreateFormExpanded)}
+                            sx={{ 
+                                p: '12px !important',
+                                "&:last-child": { pb: '12px !important' }
+                            }}
                         >
-                            Create New Ballot
-                        </Button>
-                    }
-                />
+                            <Box 
+                                sx={{ 
+                                    display: 'flex', 
+                                    justifyContent: 'space-between', 
+                                    alignItems: 'center'
+                                }}
+                            >
+                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                    <AddIcon color="primary" />
+                                    <Typography variant="h6" color="primary">
+                                        Create New Category
+                                    </Typography>
+                                </Box>
+                                <ExpandMoreIcon 
+                                    sx={{ 
+                                        transform: isCreateFormExpanded ? 'rotate(180deg)' : 'none',
+                                        transition: theme.transitions.create('transform'),
+                                        color: theme.palette.primary.main
+                                    }} 
+                                />
+                            </Box>
+                        </CardContent>
+                    </Card>
+
+                    {/* Create Category Form Card */}
+                    <Collapse in={isCreateFormExpanded}>
+                        <Card sx={{ mb: 3 }}>
+                            <CardContent>
+                                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                                    <TextField
+                                        fullWidth
+                                        label="Category Name"
+                                        value={newCategoryName}
+                                        onChange={(e) => setNewCategoryName(e.target.value)}
+                                    />
+                                      <Autocomplete
+                                        multiple
+                                        disableCloseOnSelect
+                                        value={selectedRoleIds.map(id => availableRoles.find(role => role.id === id)).filter(Boolean)}
+                                        onChange={(_, newValue) => setSelectedRoleIds(newValue.map(role => role.id))}
+                                        options={availableRoles}
+                                        getOptionLabel={(option) => option.name}
+                                        renderOption={(props, option, { selected }) => (
+                                            <li {...props}>
+                                                <Box 
+                                                    component="span" 
+                                                    sx={{ 
+                                                        width: 20, 
+                                                        height: 20, 
+                                                        border: '2px solid',
+                                                        borderColor: selected ? 'primary.main' : 'grey.400',
+                                                        borderRadius: 0.5,
+                                                        mr: 1,
+                                                        display: 'inline-flex',
+                                                        alignItems: 'center',
+                                                        justifyContent: 'center',
+                                                        backgroundColor: selected ? 'primary.main' : 'transparent'
+                                                    }}
+                                                >
+                                                    {selected && (
+                                                        <Typography
+                                                            component="span"
+                                                            sx={{
+                                                                color: 'white',
+                                                                fontSize: '0.8rem',
+                                                                fontWeight: 'bold'
+                                                            }}
+                                                        >
+                                                            ✓
+                                                        </Typography>
+                                                    )}
+                                                </Box>
+                                                {option.name}
+                                            </li>
+                                        )}
+                                        renderInput={(params) => (
+                                            <TextField
+                                                {...params}
+                                                label="Assign Roles"
+                                                placeholder={selectedRoleIds.length ? "Add more roles..." : "Search roles..."}
+                                            />
+                                        )}
+                                        renderTags={(value, getTagProps) =>
+                                            value.map((option, index) => (
+                                                <Chip
+                                                    label={option.name}
+                                                    {...getTagProps({ index })}
+                                                    sx={{ 
+                                                        backgroundColor: theme.palette.primary.main,
+                                                        color: theme.palette.primary.contrastText
+                                                    }}
+                                                />
+                                            ))
+                                        }
+                                    />
+
+                                    <Button
+                                        variant="contained"
+                                        fullWidth
+                                        onClick={handleCreateCategory}
+                                        disabled={!newCategoryName.trim()}
+                                    >
+                                        Create Category
+                                    </Button>
+                                </Box>
+                            </CardContent>
+                        </Card>
+                    </Collapse>
+
+                    {/* Categories List */}
+                    {error && (
+                        <Typography color="error" sx={{ mb: 2 }}>
+                            {error}
+                        </Typography>
+                    )}
+
+                    <Box sx={{ 
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: 2
+                    }}>
+                        {filteredCategories.length === 0 ? (
+                            <Typography color="text.secondary">
+                                No categories found.
+                            </Typography>
+                        ) : (
+                            filteredCategories.map(category => (
+                                <CategoryCard 
+                                    key={category.id}
+                                    category={category}
+                                    onDelete={handleCategoryDelete}
+                                />
+                            ))
+                        )}
+                    </Box>
+                </Box>
+
+                {/* Divider */}
+                <Divider orientation="vertical" flexItem sx={{ backgroundColor: theme.palette.secondary.main }} />
+
+                {/* Filters Side Panel */}
+                <Box sx={{ width: 280 }}>
+                    <Card>
+                        <CardContent>
+                            <Typography variant="h6" gutterBottom>
+                                Filters
+                            </Typography>
+
+                            {/* Role Filter */}
+                            <FormControl fullWidth sx={{ mb: 2 }}>
+                                <InputLabel>Filter by Role</InputLabel>
+                                <Select
+                                    value={selectedRole}
+                                    label="Filter by Role"
+                                    onChange={(e) => setSelectedRole(e.target.value)}
+                                >
+                                    <MenuItem value="all">All Roles</MenuItem>
+                                    {availableRoles.map(role => (
+                                        <MenuItem key={role.id} value={role.name}>
+                                            {role.name}
+                                        </MenuItem>
+                                    ))}
+                                </Select>
+                            </FormControl>
+
+                            {/* Sort Order */}
+                            <Button
+                                variant="outlined"
+                                fullWidth
+                                onClick={toggleSortOrder}
+                            >
+                                Sort by Name: {sortOrder === 'asc' ? '↑' : '↓'}
+                            </Button>
+                        </CardContent>
+                    </Card>
+                </Box>
             </Box>
-
-            <Paper sx={{ width: '100%', mb: 2 }}>
-                <Tabs
-                    value={activeTab}
-                    onChange={handleTabChange}
-                    aria-label="ballot tabs"
-                    sx={{ borderBottom: 1, borderColor: 'divider' }}
-                >
-                    <Tab label="Active Ballots" {...a11yProps(0)} />
-                    <Tab label="Past Ballots" {...a11yProps(1)} />
-                    <Tab label="Suspended Ballots" {...a11yProps(2)} />
-                </Tabs>
-
-                <TabPanel value={activeTab} index={0}>
-                    {loading ? (
-                        <Typography>Loading active ballots...</Typography>
-                    ) : activeBallotsData.length > 0 ? (
-                        <Box sx={{ display: 'grid', gap: 2, gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))' }}>
-                            {activeBallotsData.map((ballot: any) => (
-                                <BallotCard key={ballot.id} ballot={ballot} />
-                            ))}
-                        </Box>
-                    ) : (
-                        <Typography>No active ballots found.</Typography>
-                    )}
-                </TabPanel>
-
-                <TabPanel value={activeTab} index={1}>
-                    {loading ? (
-                        <Typography>Loading past ballots...</Typography>
-                    ) : pastBallotsData.length > 0 ? (
-                        <Box sx={{ display: 'grid', gap: 2, gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))' }}>
-                            {pastBallotsData.map((ballot: any) => (
-                                <BallotCard key={ballot.id} ballot={ballot} />
-                            ))}
-                        </Box>
-                    ) : (
-                        <Typography>No past ballots found.</Typography>
-                    )}
-                </TabPanel>
-
-                <TabPanel value={activeTab} index={2}>
-                    {loading ? (
-                        <Typography>Loading suspended ballots...</Typography>
-                    ) : suspendedBallotsData.length > 0 ? (
-                        <Box sx={{ display: 'grid', gap: 2, gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))' }}>
-                            {suspendedBallotsData.map((ballot: any) => (
-                                <BallotCard key={ballot.id} ballot={ballot} />
-                            ))}
-                        </Box>
-                    ) : (
-                        <Typography>No suspended ballots found.</Typography>
-                    )}
-                </TabPanel>
-            </Paper>
-        </Container>
+        </Box>
     );
 };

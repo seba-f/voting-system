@@ -40,8 +40,10 @@ const TitleBar: React.FC = () => {
                 alignItems: 'center',
                 justifyContent: 'right',
                 WebkitAppRegion: 'drag',
-                borderBottom: `1px solid ${theme.palette.divider}`,
-                pl: 1,
+                position: 'sticky',
+                top: 0,
+                zIndex: theme.zIndex.appBar,
+                boxShadow: 0
             }}
         >
             

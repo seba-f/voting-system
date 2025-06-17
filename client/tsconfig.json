@@ -14,8 +14,7 @@
     "paths": {
       "*": ["node_modules/*", "../shared/*"]
     },
-    "jsx": "react-jsx",
-    "forceConsistentCasingInFileNames": true
+    "jsx": "react-jsx"
   },
   "include": ["src/**/*"]
 }

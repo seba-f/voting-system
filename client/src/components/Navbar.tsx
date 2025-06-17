@@ -21,6 +21,7 @@ import ExpandLess from "@mui/icons-material/ExpandLess";
 import ExpandMore from "@mui/icons-material/ExpandMore";
 import logoFull from "../assets/logo_full.svg";
 import logoCheck from "../assets/logo_check.svg";
+import BallotIcon from "@mui/icons-material/Ballot";
 
 interface NavbarProps {
 	onThemeToggle: () => void;
@@ -141,14 +142,13 @@ export const Navbar: React.FC<NavbarProps> = ({
 								sx={buttonSx}
 							>
 								{!isMinimal && "Categories"}
-							</Button>
-                            <Button
+							</Button>                            <Button
 								color="inherit"
-								onClick={() => handleNavigation("/admin/categories/manage")}
-								startIcon={<CategoryIcon />}
+								onClick={() => handleNavigation("/admin/ballots")}
+								startIcon={<BallotIcon />}
 								sx={buttonSx}
 							>
-								{!isMinimal && "Ballot Management"}
+								{!isMinimal && "Manage Ballots"}
 							</Button>
 						</>
 					)}

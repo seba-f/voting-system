@@ -56,20 +56,42 @@ export const createBallot = async (req: AuthRequest, res: Response): Promise<voi
 
 export const getActiveBallotsForCategory = async (req: AuthRequest, res: Response): Promise<void> => {
     try {
+        if (!req.user) {
+            res.status(401).json({ message: 'User not authenticated' });
+            return;
+        }
+
         const currentDate = new Date();
-        const ballots = await Ballot.findAll({
+        const isAdmin = req.user.Roles.some(role => role.name === 'admin' || role.name === 'DefaultAdmin');
+        
+        const queryOptions = {
             where: {
                 limitDate: {
                     [Op.gt]: currentDate
                 },
-                isSuspended: false
+                isSuspended: false,
+                ...(isAdmin ? {} : { /* Add any user-specific filters here */ })
             },
-            include: [VotingOption]
-        });
+            include: [{
+                model: VotingOption,
+                attributes: ['id', 'title', 'isText']  // Only include necessary fields
+            }],
+            order: [['limitDate', 'ASC'] as [string, string]]  // Sort by nearest deadline first
+        };
+
+        const ballots = await Ballot.findAll(queryOptions);
 
         // Format each ballot before sending
-        const formattedBallots = ballots.map(formatBallotResponse);
-        res.json(formattedBallots);
+        const formattedBallots = ballots.map(ballot => {
+            const formatted = formatBallotResponse(ballot);
+            return {
+                ...formatted,
+                status: formatted.isSuspended ? 'Suspended' : 
+                        (new Date(formatted.endDate) < new Date() ? 'Ended' : 'Active')
+            };
+        });
+        
+        res.status(200).json(formattedBallots);
     } catch (error: any) {
         console.error('Error fetching active ballots:', error);
         res.status(500).json({ message: 'Error fetching active ballots', error: error.message });

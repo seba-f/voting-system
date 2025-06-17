@@ -48,8 +48,8 @@ const createWindow = async (): Promise<void> => {
 
   // Create the browser window with appropriate session
   const mainWindow = new BrowserWindow({
-    height: 600,
-    width: 800,
+    height: 1000,
+    width: 1200,
     icon,
     frame: false, // Remove default frame
     webPreferences: {

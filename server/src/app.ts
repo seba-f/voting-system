@@ -9,6 +9,7 @@ import usersRouter from './routes/usersRouter';
 import rolesRouter from './routes/rolesRouter';
 import sessionRouter from './routes/sessionRouter';
 import categoriesRouter from './routes/categoriesRouter';
+import ballotsRouter from './routes/ballotsRouter';
 import { Session, User } from './models/entities';
 import cors from 'cors';
 import { Op } from 'sequelize';
@@ -28,6 +29,7 @@ app.use('/api', usersRouter);
 app.use('/api', rolesRouter);
 app.use('/api', categoriesRouter);
 app.use('/api/sessions', sessionRouter);
+app.use('/api/ballots', ballotsRouter);
 
 // Function to cleanup invalid sessions on server start
 const cleanupSessions = async () => {
