@@ -21,6 +21,7 @@ interface Ballot {
     status: string;
     type: string;
     allowedRoles: string[];
+    categoryId: number;
 }
 
 export const Dashboard: React.FC = () => {
@@ -28,7 +29,17 @@ export const Dashboard: React.FC = () => {
     const [ballots, setBallots] = useState<Ballot[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);    const fetchBallots = useCallback(async () => {
-        if (!user) return; // Don't fetch if user not loaded
+        if (!user) {
+            console.log('[Dashboard] No user found, skipping ballot fetch');
+            return;
+        }
+        
+        console.log('[Dashboard] Current user:', {
+            id: user.id,
+            username: user.username,
+            roles: user.roles,
+            isAdmin: isAdmin()
+        });
         
         try {
             const cacheKey = `ballots-${isAdmin() ? 'admin' : 'user'}-${user.id}`;
@@ -39,23 +50,33 @@ export const Dashboard: React.FC = () => {
             if (cachedData && cachedTimestamp) {
                 const age = Date.now() - parseInt(cachedTimestamp);
                 if (age < 30000) { // 30 seconds
+                    console.log('[Dashboard] Using cached ballot data, age:', age, 'ms');
                     setBallots(JSON.parse(cachedData));
                     setLoading(false);
                     return;
                 }
             }
 
-            const response = await API.get(
-                isAdmin() ? '/ballots/active' : '/ballots/active/user'
-            );
+            const endpoint = isAdmin() ? '/ballots/active' : `/ballots/active/${user.id}`;
+            console.log('[Dashboard] Fetching ballots from endpoint:', endpoint);
+
+            const response = await API.get(endpoint);
+            console.log('[Dashboard] Received ballots:', {
+                count: response.data.length,
+                ballots: response.data.map((b: Ballot) => ({ id: b.id, title: b.title, categoryId: b.categoryId }))
+            });
+            
             setBallots(response.data);
             
             // Cache the new data
             sessionStorage.setItem(cacheKey, JSON.stringify(response.data));
             sessionStorage.setItem(cacheKey + '-timestamp', Date.now().toString());
-        } catch (err) {
+        } catch (err: any) {
+            console.error('[Dashboard] Error fetching ballots:', {
+                message: err.message,
+                response: err.response?.data
+            });
             setError('Failed to load ballots');
-            console.error(err);
         } finally {
             setLoading(false);
         }
