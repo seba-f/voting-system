@@ -126,8 +126,18 @@ export const Navbar: React.FC<NavbarProps> = ({
 						{!isMinimal && "Dashboard"}
 					</Button>
 
+					<Button
+						color="inherit"
+						onClick={() => handleNavigation(isAdmin() ? "/admin/ballots" : "/ballots")}
+						startIcon={<BallotIcon />}
+						sx={buttonSx}
+					>
+						{!isMinimal && (isAdmin() ? "Manage Ballots" : "Ballots")}
+					</Button>
+
 					{isAdmin() && (
-						<>							<Button
+						<>
+							<Button
 								color="inherit"
 								onClick={() => handleNavigation("/admin/users")}
 								startIcon={<PeopleIcon />}
@@ -135,20 +145,13 @@ export const Navbar: React.FC<NavbarProps> = ({
 							>
 								{!isMinimal && "Manage Users"}
 							</Button>
-                            <Button
+							<Button
 								color="inherit"
 								onClick={() => handleNavigation("/admin/categories")}
 								startIcon={<CategoryIcon />}
 								sx={buttonSx}
 							>
 								{!isMinimal && "Categories"}
-							</Button>                            <Button
-								color="inherit"
-								onClick={() => handleNavigation("/admin/ballots")}
-								startIcon={<BallotIcon />}
-								sx={buttonSx}
-							>
-								{!isMinimal && "Manage Ballots"}
 							</Button>
 						</>
 					)}

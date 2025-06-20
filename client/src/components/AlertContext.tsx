@@ -45,7 +45,7 @@ export const AlertProvider: React.FC<AlertProviderProps> = ({ children }) => {
     <AlertContext.Provider value={{ showAlert }}>
       {children}      <Snackbar
         open={open}
-        autoHideDuration={6000}
+        autoHideDuration={2000}
         onClose={handleClose}
         anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
       >

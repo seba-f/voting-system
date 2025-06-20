@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import {
 	Box,
 	Button,
@@ -10,10 +10,11 @@ import {
 import {
 	Add as AddIcon,
 } from "@mui/icons-material";
-import { PageHeader } from "../../components/PageHeader";
-import { BallotCard } from "../../components/BallotCard";
-import API from "../../api/axios";
+import { PageHeader } from "../components/PageHeader";
+import { BallotCard } from "../components/BallotCard";
+import API from "../api/axios";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "../auth/AuthContext";
 
 interface TabPanelProps {
 	children?: React.ReactNode;
@@ -44,73 +45,94 @@ function a11yProps(index: number) {
 	};
 }
 
-export const ManageBallots = () => {
+export const BallotsList = () => {
 	const [activeTab, setActiveTab] = useState(0);
 	const [activeBallotsData, setActiveBallotsData] = useState([]);
 	const [pastBallotsData, setPastBallotsData] = useState([]);
-	const [suspendedBallotsData, setSuspendedBallotsData] = useState([]);
-	const [loading, setLoading] = useState(true);
+	const [suspendedBallotsData, setSuspendedBallotsData] = useState([]);	const [loading, setLoading] = useState(true);
+	const { isAdmin, user } = useAuth();
+	const navigate = useNavigate();
+	const fetchBallots = useCallback(async () => {
+		try {
+			setLoading(true);
+
+			if (!user) {
+				console.log('[BallotsList] No user found, skipping ballot fetch');
+				return;
+			}
+
+			const cacheKey = `ballots-list-${isAdmin() ? 'admin' : 'user'}-${user.id}`;
+			const cachedData = sessionStorage.getItem(cacheKey);
+			const cachedTimestamp = sessionStorage.getItem(cacheKey + '-timestamp');
+			
+			// Use cached data if less than 30 seconds old
+			if (cachedData && cachedTimestamp) {
+				const age = Date.now() - parseInt(cachedTimestamp);
+				if (age < 30000) { // 30 seconds
+					console.log('[BallotsList] Using cached ballot data, age:', age, 'ms');
+					const data = JSON.parse(cachedData);
+					setActiveBallotsData(data.active);
+					setPastBallotsData(data.past);
+					setSuspendedBallotsData(data.suspended);
+					setLoading(false);
+					return;
+				}
+			}
+
+			// Fetch active ballots
+			const activeEndpoint = isAdmin() ? '/ballots/active' : `/ballots/active/${user.id}`;
+			const activeResponse = await API.get(activeEndpoint);
+			setActiveBallotsData(activeResponse.data);
+
+			// Fetch past ballots
+			const pastEndpoint = isAdmin() ? '/ballots/past' : `/ballots/past/${user.id}`;
+			const pastResponse = await API.get(pastEndpoint);
+			setPastBallotsData(pastResponse.data);			// Fetch suspended ballots
+			const suspendedEndpoint = isAdmin() ? '/ballots/suspended' : `/ballots/suspended/${user.id}`;
+			const suspendedResponse = await API.get(suspendedEndpoint);
+			setSuspendedBallotsData(suspendedResponse.data);			// Cache the new data
+			const cacheData = {
+				active: activeResponse.data,
+				past: pastResponse.data,
+				suspended: suspendedResponse.data
+			};
+			sessionStorage.setItem(cacheKey, JSON.stringify(cacheData));
+			sessionStorage.setItem(cacheKey + '-timestamp', Date.now().toString());
+		} catch (error) {
+			console.error("[BallotsList] Error fetching ballots:", error);
+		} finally {
+			setLoading(false);
+		}
+	}, [isAdmin, user]);
 
 	useEffect(() => {
-		const fetchBallots = async () => {
-			try {
-				setLoading(true);
-				// Fetch active ballots
-				const activeResponse = await API.get("/ballots/active");
-				setActiveBallotsData(activeResponse.data);
-
-				// Fetch past ballots
-				const pastResponse = await API.get("/ballots/past");
-				setPastBallotsData(pastResponse.data);
-
-				// Fetch suspended ballots
-				const suspendedResponse = await API.get("/ballots/suspended");
-				setSuspendedBallotsData(suspendedResponse.data);
-			} catch (error) {
-				console.error("Error fetching ballots:", error);
-			} finally {
-				setLoading(false);
-			}
-		};
-
 		fetchBallots();
-	}, []);
+	}, [fetchBallots]);
 
 	const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
 		setActiveTab(newValue);
 	};
-	const navigate = useNavigate();
 
 	const handleCreateBallot = () => {
 		navigate("/admin/ballots/new");
 	};
 	const handleRefresh = () => {
-		const fetchBallots = async () => {
-			try {
-				setLoading(true);
-				const activeResponse = await API.get("/ballots/active");
-				setActiveBallotsData(activeResponse.data);
-
-				const pastResponse = await API.get("/ballots/past");
-				setPastBallotsData(pastResponse.data);
-
-				const suspendedResponse = await API.get("/ballots/suspended");
-				setSuspendedBallotsData(suspendedResponse.data);
-			} catch (error) {
-				console.error("Error fetching ballots:", error);
-			} finally {
-				setLoading(false);
-			}
-		};
+		// Clear cache to force a fresh fetch
+		if (user) {
+			const cacheKey = `ballots-list-${isAdmin() ? 'admin' : 'user'}-${user.id}`;
+			sessionStorage.removeItem(cacheKey);
+			sessionStorage.removeItem(cacheKey + '-timestamp');
+		}
 		fetchBallots();
 	};
+
 	return (
 		<Box sx={{ p: 3 }}>
 			<PageHeader
-				title="Manage Ballots"
+				title={isAdmin() ? "Manage Ballots" : "Ballots"}
 				onRefresh={handleRefresh}
 				isRefreshing={loading}
-				action={
+				action={isAdmin() ? (
 					<Button
 						variant="contained"
 						startIcon={<AddIcon />}
@@ -118,10 +140,9 @@ export const ManageBallots = () => {
 					>
 						Create New Ballot
 					</Button>
-				}
+				) : undefined}
 			/>
-			<Paper sx={{ width: "100%", mb: 2, mt: 2 }}>
-				<Tabs
+			<Paper sx={{ width: "100%", mb: 2, mt: 2 }}>				<Tabs
 					value={activeTab}
 					onChange={handleTabChange}
 					aria-label="ballot tabs"
@@ -170,9 +191,7 @@ export const ManageBallots = () => {
 					) : (
 						<Typography>No past ballots found.</Typography>
 					)}
-				</TabPanel>
-
-				<TabPanel value={activeTab} index={2}>
+				</TabPanel>				<TabPanel value={activeTab} index={2}>
 					{loading ? (
 						<Typography>Loading suspended ballots...</Typography>
 					) : suspendedBallotsData.length > 0 ? (

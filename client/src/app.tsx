@@ -17,8 +17,10 @@ import { Navbar } from "./components/Navbar";
 import { UsersList } from "./pages/admin/ManageUsers";
 import { NewUserPage } from "./pages/admin/NewUserPage";
 import { CategoriesList } from "./pages/admin/ManageCategories";
-import { ManageBallots } from "./pages/admin/ManageBallots";
+import { BallotsList } from "./pages/BallotsList";
 import { CreateBallot } from "./pages/admin/CreateBallot";
+import ViewBallotAdmin from "./pages/admin/ViewBallotAdmin";
+import ViewBallot from "./pages/ViewBallot";
 import TitleBar from "./components/TitleBar";
 
 interface AppLayoutProps {
@@ -84,15 +86,19 @@ const App: React.FC = () => {
 							>
 								<Route index element={<Navigate to="/dashboard" replace />} />
 								<Route path="/dashboard" element={<Dashboard />} />
+								<Route path="/ballot/:id" element={<ViewBallot />} />
+								<Route path="/ballots" element={<BallotsList />} />
 								<Route
 									path="/admin/*"
 									element={
 										<ProtectedRoute requireAdmin>
-											{" "}                                        <Routes>												<Route path="users" element={<UsersList />} />
+											<Routes>
+												<Route path="users" element={<UsersList />} />
 												<Route path="users/new" element={<NewUserPage />} />
                                                 <Route path="categories" element={<CategoriesList />} />
-                                                <Route path="ballots" element={<ManageBallots />} />
+                                                <Route path="ballots" element={<BallotsList />} />
                                                 <Route path="ballots/new" element={<CreateBallot />} />
+                                                <Route path="ballot/:id" element={<ViewBallotAdmin />} />
 											</Routes>
 										</ProtectedRoute>
 									}
