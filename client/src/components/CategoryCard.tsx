@@ -26,6 +26,7 @@ import {
 } from '@mui/icons-material';
 import API from '../api/axios';
 import { useAlert } from './AlertContext';
+import { MockChip } from './MockChip';
 
 interface CategoryCardProps {
     category: {
@@ -192,22 +193,8 @@ export const CategoryCard: React.FC<CategoryCardProps> = ({ category, onDelete }
                                     No roles assigned
                                 </Typography>
                             ) : (
-                                category.roles.map((role, index) => (
-                                    <Box
-                                        key={index}
-                                        sx={{
-                                            px: 1,
-                                            py: 0.5,
-                                            borderRadius: 50,
-                                            fontSize: "0.8125rem",
-                                            bgcolor: alpha(theme.palette.primary.main, 0.05),
-                                            border: 1,
-                                            borderColor: alpha(theme.palette.primary.main, 0.2),
-                                            color: theme.palette.text.primary,
-                                        }}
-                                    >
-                                        {role.name}
-                                    </Box>
+                                category.roles.map((role) => (
+                                    <MockChip label={role.name} variant='info' size='small'></MockChip>
                                 ))
                             )}
                         </Box>

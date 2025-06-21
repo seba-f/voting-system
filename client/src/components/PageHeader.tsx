@@ -18,7 +18,7 @@ export const PageHeader: React.FC<PageHeaderProps> = ({
     action
 }) => {
     return (
-        <Box sx={{ mb: 4 }}>
+        <Box sx={{ mb: 2 }}>
             <Box sx={{ 
                 display: 'flex', 
                 justifyContent: 'space-between', 
