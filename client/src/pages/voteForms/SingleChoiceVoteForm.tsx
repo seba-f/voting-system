@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
     Box,
     FormControl,
@@ -25,17 +25,52 @@ interface Ballot {
 
 interface SingleChoiceVoteFormProps {
     ballot: Ballot;
-    onSubmit: (vote: { optionId: number }) => Promise<void>;
+    onSubmit?: (vote: { optionId: number }) => Promise<void>;
+    readOnly?: boolean;
+    selectedOptionId?: number;
 }
 
-export const SingleChoiceVoteForm: React.FC<SingleChoiceVoteFormProps> = ({ ballot, onSubmit }) => {
-    const [selectedOption, setSelectedOption] = useState<number | null>(null);
+export const SingleChoiceVoteForm: React.FC<SingleChoiceVoteFormProps> = ({ 
+    ballot, 
+    onSubmit, 
+    readOnly = false,
+    selectedOptionId
+}) => {
+    console.log('[SingleChoiceVoteForm] Rendering with props:', {
+        ballotId: ballot.id,
+        readOnly,
+        selectedOptionId,
+        hasOnSubmit: !!onSubmit
+    });
+
+    const [selectedOption, setSelectedOption] = useState<number | null>(selectedOptionId ?? null);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
+    // Update selectedOption when selectedOptionId prop changes
+    useEffect(() => {
+        if (selectedOptionId !== undefined) {
+            setSelectedOption(selectedOptionId);
+        }
+    }, [selectedOptionId]);    
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+        console.log('[SingleChoiceVoteForm] Attempting submit:', {
+            readOnly,
+            hasOnSubmit: !!onSubmit,
+            selectedOption
+        });
+
+        if (!onSubmit || readOnly) {
+            console.log('[SingleChoiceVoteForm] Submit prevented:', {
+                reason: !onSubmit ? 'No onSubmit handler' : 'Form is readonly'
+            });
+            return;
+        }
+
         if (selectedOption === null) {
+            console.log('[SingleChoiceVoteForm] Submit prevented: No option selected');
             setError('Please select an option');
             return;
         }
@@ -52,7 +87,20 @@ export const SingleChoiceVoteForm: React.FC<SingleChoiceVoteFormProps> = ({ ball
     };
 
     return (
-        <Paper sx={{ p: 3 }}>
+        <Paper 
+            component="form"
+            onSubmit={handleSubmit}
+            sx={{ 
+                p: 3,
+                position: 'relative',
+                ...(readOnly && {
+                    backgroundColor: 'action.disabledBackground',
+                    '& .MuiFormControlLabel-root': {
+                        cursor: 'default'
+                    }
+                })
+            }}
+        >
             <Typography variant="h6" gutterBottom>
                 {ballot.title}
             </Typography>
@@ -66,49 +114,47 @@ export const SingleChoiceVoteForm: React.FC<SingleChoiceVoteFormProps> = ({ ball
                 </Alert>
             )}
 
-            <form onSubmit={handleSubmit}>
-                <FormControl component="fieldset" fullWidth>
-                    <RadioGroup
-                        value={selectedOption || ''}
-                        onChange={(e) => setSelectedOption(Number(e.target.value))}
-                    >
-                        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-                            {ballot.options.map((option) => (
-                                <FormControlLabel
-                                    key={option.id}
-                                    value={option.id}
-                                    control={<Radio />}
-                                    label={
-                                        <Typography variant="body1">
-                                            {option.title}
-                                        </Typography>
-                                    }
-                                    sx={{
-                                        p: 1,
-                                        border: 1,
-                                        borderColor: 'divider',
-                                        borderRadius: 1,
-                                        '&:hover': {
-                                            backgroundColor: 'action.hover',
-                                        }
-                                    }}
+            <FormControl component="fieldset" sx={{ width: '100%' }}>
+                <RadioGroup
+                    value={selectedOption ?? ''}
+                    onChange={(e) => !readOnly && setSelectedOption(Number(e.target.value))}
+                >
+                    {ballot.options.map((option) => (
+                        <FormControlLabel
+                            key={option.id}
+                            value={option.id}
+                            control={
+                                <Radio 
+                                    disabled={readOnly}
+                                    checked={selectedOption === option.id}
                                 />
-                            ))}
-                        </Box>
-                    </RadioGroup>
-                </FormControl>
+                            }
+                            label={option.title}
+                            disabled={readOnly}
+                            sx={{
+                                ...(readOnly && selectedOption === option.id && {
+                                    '.MuiFormControlLabel-label': {
+                                        fontWeight: 'bold',
+                                        color: 'primary.main'
+                                    }
+                                })
+                            }}
+                        />
+                    ))}
+                </RadioGroup>
+            </FormControl>
 
+            {!readOnly && (
                 <Box sx={{ mt: 3, display: 'flex', justifyContent: 'flex-end' }}>
                     <Button
                         type="submit"
                         variant="contained"
-                        disabled={selectedOption === null || isSubmitting}
-                        sx={{ minWidth: 120 }}
+                        disabled={isSubmitting || selectedOption === null}
                     >
                         {isSubmitting ? 'Submitting...' : 'Submit Vote'}
                     </Button>
                 </Box>
-            </form>
+            )}
         </Paper>
     );
 };

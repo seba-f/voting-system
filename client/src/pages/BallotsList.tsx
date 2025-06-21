@@ -6,6 +6,9 @@ import {
 	Tab,
 	Typography,
 	Paper,
+	Grid,
+	Divider,
+    CircularProgress
 } from "@mui/material";
 import {
 	Add as AddIcon,
@@ -20,6 +23,23 @@ interface TabPanelProps {
 	children?: React.ReactNode;
 	index: number;
 	value: number;
+}
+
+interface Ballot {
+    id: number;
+    title: string;
+    description: string;
+    status: string;
+    type: string;
+    startDate: Date;
+    endDate: Date;
+    categoryId: number;
+    [key: string]: any;
+}
+
+interface ActiveBallotsData {
+    voted: Ballot[];
+    unvoted: Ballot[];
 }
 
 function TabPanel(props: TabPanelProps) {
@@ -47,11 +67,13 @@ function a11yProps(index: number) {
 
 export const BallotsList = () => {
 	const [activeTab, setActiveTab] = useState(0);
-	const [activeBallotsData, setActiveBallotsData] = useState([]);
-	const [pastBallotsData, setPastBallotsData] = useState([]);
-	const [suspendedBallotsData, setSuspendedBallotsData] = useState([]);	const [loading, setLoading] = useState(true);
+	const [activeBallotsData, setActiveBallotsData] = useState<Ballot[] | ActiveBallotsData>([]);
+	const [pastBallotsData, setPastBallotsData] = useState<Ballot[]>([]);
+	const [suspendedBallotsData, setSuspendedBallotsData] = useState<Ballot[]>([]);
+	const [loading, setLoading] = useState(true);
 	const { isAdmin, user } = useAuth();
 	const navigate = useNavigate();
+
 	const fetchBallots = useCallback(async () => {
 		try {
 			setLoading(true);
@@ -80,17 +102,24 @@ export const BallotsList = () => {
 			}
 
 			// Fetch active ballots
-			const activeEndpoint = isAdmin() ? '/ballots/active' : `/ballots/active/${user.id}`;
+			const activeEndpoint = isAdmin() ? '/ballots/active' : '/ballots/active-with-status';
 			const activeResponse = await API.get(activeEndpoint);
-			setActiveBallotsData(activeResponse.data);
+			setActiveBallotsData(isAdmin() ? activeResponse.data : {
+                voted: activeResponse.data.voted,
+                unvoted: activeResponse.data.unvoted
+            });
 
 			// Fetch past ballots
 			const pastEndpoint = isAdmin() ? '/ballots/past' : `/ballots/past/${user.id}`;
 			const pastResponse = await API.get(pastEndpoint);
-			setPastBallotsData(pastResponse.data);			// Fetch suspended ballots
+			setPastBallotsData(pastResponse.data);
+
+            // Fetch suspended ballots
 			const suspendedEndpoint = isAdmin() ? '/ballots/suspended' : `/ballots/suspended/${user.id}`;
 			const suspendedResponse = await API.get(suspendedEndpoint);
-			setSuspendedBallotsData(suspendedResponse.data);			// Cache the new data
+			setSuspendedBallotsData(suspendedResponse.data);
+
+			// Cache the new data
 			const cacheData = {
 				active: activeResponse.data,
 				past: pastResponse.data,
@@ -116,6 +145,7 @@ export const BallotsList = () => {
 	const handleCreateBallot = () => {
 		navigate("/admin/ballots/new");
 	};
+
 	const handleRefresh = () => {
 		// Clear cache to force a fresh fetch
 		if (user) {
@@ -124,6 +154,77 @@ export const BallotsList = () => {
 			sessionStorage.removeItem(cacheKey + '-timestamp');
 		}
 		fetchBallots();
+	};
+
+	const renderActiveBallotsContent = () => {
+		if (loading) {
+			return (
+				<Box sx={{ display: 'flex', justifyContent: 'center', p: 3 }}>
+					<CircularProgress />
+				</Box>
+			);
+		}
+
+		if (isAdmin()) {
+			const ballots = activeBallotsData as Ballot[];
+			if (ballots.length === 0) {
+				return <Typography>No active ballots found.</Typography>;
+			}
+
+			return (
+				<Box sx={{
+					display: "grid",
+					gap: 2,
+					gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))",
+				}}>
+					{ballots.map((ballot: Ballot) => (
+						<BallotCard key={ballot.id} ballot={ballot} />
+					))}
+				</Box>
+			);
+		} else {
+			const { voted, unvoted } = activeBallotsData as ActiveBallotsData;
+			const hasNoBallots = voted.length === 0 && unvoted.length === 0;
+
+			if (hasNoBallots) {
+				return <Typography>No active ballots found.</Typography>;
+			}
+
+			return (				<Box sx={{ display: 'flex', flexDirection: { xs: 'column', md: 'row' }, gap: 3 }}>
+                    <Box sx={{ flex: 1 }}>
+						<Typography variant="h6" gutterBottom color="primary">
+							Awaiting Your Vote
+						</Typography>
+						{unvoted.length === 0 ? (
+							<Typography color="text.secondary">
+								You've voted on all available ballots!
+							</Typography>
+						) : (
+							<Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>								{unvoted.map((ballot: Ballot) => (
+									<BallotCard key={ballot.id} ballot={ballot} hasVoted={false} />
+								))}
+							</Box>
+						)}
+					</Box>
+                    <Box sx={{ flex: 1 }}>
+						<Typography variant="h6" gutterBottom color="primary">
+							Already Voted
+						</Typography>
+						{voted.length === 0 ? (
+							<Typography color="text.secondary">
+								You haven't voted on any active ballots yet.
+							</Typography>
+						) : (
+							<Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+								{voted.map((ballot: Ballot) => (
+									<BallotCard key={ballot.id} ballot={ballot} hasVoted={true} />
+								))}
+							</Box>
+						)}
+					</Box>
+				</Box>
+			);
+		}
 	};
 
 	return (
@@ -142,7 +243,8 @@ export const BallotsList = () => {
 					</Button>
 				) : undefined}
 			/>
-			<Paper sx={{ width: "100%", mb: 2, mt: 2 }}>				<Tabs
+			<Paper sx={{ width: "100%", mb: 2, mt: 2 }}>
+				<Tabs
 					value={activeTab}
 					onChange={handleTabChange}
 					aria-label="ballot tabs"
@@ -154,28 +256,14 @@ export const BallotsList = () => {
 				</Tabs>
 
 				<TabPanel value={activeTab} index={0}>
-					{loading ? (
-						<Typography>Loading active ballots...</Typography>
-					) : activeBallotsData.length > 0 ? (
-						<Box
-							sx={{
-								display: "grid",
-								gap: 2,
-								gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))",
-							}}
-						>
-							{activeBallotsData.map((ballot: any) => (
-								<BallotCard key={ballot.id} ballot={ballot} />
-							))}
-						</Box>
-					) : (
-						<Typography>No active ballots found.</Typography>
-					)}
+					{renderActiveBallotsContent()}
 				</TabPanel>
 
 				<TabPanel value={activeTab} index={1}>
 					{loading ? (
-						<Typography>Loading past ballots...</Typography>
+						<Box sx={{ display: 'flex', justifyContent: 'center', p: 3 }}>
+							<CircularProgress />
+						</Box>
 					) : pastBallotsData.length > 0 ? (
 						<Box
 							sx={{
@@ -191,9 +279,13 @@ export const BallotsList = () => {
 					) : (
 						<Typography>No past ballots found.</Typography>
 					)}
-				</TabPanel>				<TabPanel value={activeTab} index={2}>
+				</TabPanel>
+
+				<TabPanel value={activeTab} index={2}>
 					{loading ? (
-						<Typography>Loading suspended ballots...</Typography>
+						<Box sx={{ display: 'flex', justifyContent: 'center', p: 3 }}>
+							<CircularProgress />
+						</Box>
 					) : suspendedBallotsData.length > 0 ? (
 						<Box
 							sx={{
@@ -203,10 +295,7 @@ export const BallotsList = () => {
 							}}
 						>
 							{suspendedBallotsData.map((ballot: any) => (
-								<BallotCard 
-									key={ballot.id} 
-									ballot={{...ballot, status: "Suspended"}} 
-								/>
+								<BallotCard key={ballot.id} ballot={ballot} />
 							))}
 						</Box>
 					) : (

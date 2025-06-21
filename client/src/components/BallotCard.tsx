@@ -15,18 +15,18 @@ interface BallotCardProps {
 		status: string;
 		type: string;
 	};
+	hasVoted?: boolean;
 }
 
 export const BallotCard = React.memo((props: BallotCardProps) => {
 	const { ballot } = props;
 	const navigate = useNavigate();
 	const { isAdmin } = useAuth();
-
 	const handleViewBallot = () => {
 		if (isAdmin()) {
 			navigate(`/admin/ballot/${ballot.id}`);
 		} else {
-			navigate(`/ballot/${ballot.id}`);
+			navigate(`/ballot/${ballot.id}${props.hasVoted ? '?voted=true' : ''}`);
 		}
 	};
 

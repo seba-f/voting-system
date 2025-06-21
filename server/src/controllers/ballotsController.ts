@@ -555,4 +555,192 @@ export const submitVote = async (req: AuthRequest, res: Response): Promise<void>
     }
 };
 
+export const getVotedBallots = async (req: AuthRequest, res: Response): Promise<void> => {
+    try {
+        if (!req.user) {
+            res.status(401).json({ message: 'User not authenticated' });
+            return;
+        }
+
+        const currentDate = new Date();
+
+        // Get user's roles
+        const userRoles = await UserRoles.findAll({
+            where: { userId: req.user.id },
+            attributes: ['roleId']
+        });
+        const userRoleIds = userRoles.map(role => role.roleId);
+
+        // Get categories user has access to
+        const categoryRoles = await CategoryRoles.findAll({
+            where: {
+                roleId: {
+                    [Op.in]: userRoleIds
+                }
+            },
+            attributes: ['categoryId']
+        });
+        const accessibleCategoryIds = categoryRoles.map(cr => cr.categoryId);
+
+        // Get all votes by the user
+        const userVotes = await Vote.findAll({
+            where: {
+                userId: req.user.id
+            },
+            attributes: ['ballotId']
+        });
+
+        const votedBallotIds = userVotes.map(vote => vote.ballotId);
+
+        // Get active ballots that user has voted on
+        const ballots = await Ballot.findAll({
+            where: {
+                id: {
+                    [Op.in]: votedBallotIds
+                },
+                limitDate: {
+                    [Op.gt]: currentDate
+                },
+                isSuspended: false,
+                categoryId: {
+                    [Op.in]: accessibleCategoryIds
+                }
+            },
+            include: [{
+                model: VotingOption,
+                attributes: ['id', 'title', 'isText']
+            }]
+        });
+
+        const formattedBallots = ballots.map(ballot => ({
+            ...formatBallotResponse(ballot),
+            options: ballot.VotingOptions,
+            status: ballot.isSuspended ? 'Suspended' : 
+                    (new Date(ballot.limitDate) < new Date() ? 'Ended' : 'Active')
+        }));
+
+        res.status(200).json(formattedBallots);
+    } catch (error: any) {
+        console.error('Error fetching voted ballots:', error);
+        res.status(500).json({ message: 'Error fetching voted ballots', error: error.message });
+    }
+};
+
+export const getActiveBallotsWithVoteStatus = async (req: AuthRequest, res: Response): Promise<void> => {
+    try {
+        if (!req.user) {
+            res.status(401).json({ message: 'User not authenticated' });
+            return;
+        }
+
+        const currentDate = new Date();
+
+        // Get user's roles
+        const userRoles = await UserRoles.findAll({
+            where: { userId: req.user.id },
+            attributes: ['roleId']
+        });
+        const userRoleIds = userRoles.map(role => role.roleId);
+
+        // Get categories user has access to
+        const categoryRoles = await CategoryRoles.findAll({
+            where: {
+                roleId: {
+                    [Op.in]: userRoleIds
+                }
+            },
+            attributes: ['categoryId']
+        });
+        const accessibleCategoryIds = categoryRoles.map(cr => cr.categoryId);
+
+        // Get all active ballots
+        const ballots = await Ballot.findAll({
+            where: {
+                limitDate: {
+                    [Op.gt]: currentDate
+                },
+                isSuspended: false,
+                categoryId: {
+                    [Op.in]: accessibleCategoryIds
+                }
+            },
+            include: [{
+                model: VotingOption,
+                attributes: ['id', 'title', 'isText']
+            }]
+        });
+
+        // Get all votes by the user
+        const userVotes = await Vote.findAll({
+            where: {
+                userId: req.user.id
+            },
+            attributes: ['ballotId']
+        });
+
+        const votedBallotIds = userVotes.map(vote => vote.ballotId);
+
+        // Split ballots into voted and unvoted
+        const votedBallots = [];
+        const unvotedBallots = [];
+
+        ballots.forEach(ballot => {
+            const formattedBallot = {
+                ...formatBallotResponse(ballot),
+                options: ballot.VotingOptions,
+                status: ballot.isSuspended ? 'Suspended' : 
+                        (new Date(ballot.limitDate) < new Date() ? 'Ended' : 'Active'),
+                hasVoted: votedBallotIds.includes(ballot.id)
+            };
+
+            if (votedBallotIds.includes(ballot.id)) {
+                votedBallots.push(formattedBallot);
+            } else {
+                unvotedBallots.push(formattedBallot);
+            }
+        });
+
+        res.status(200).json({
+            voted: votedBallots,
+            unvoted: unvotedBallots
+        });
+    } catch (error: any) {
+        console.error('Error fetching ballots with vote status:', error);
+        res.status(500).json({ message: 'Error fetching ballots', error: error.message });
+    }
+};
+
+export const getUserVote = async (req: AuthRequest, res: Response): Promise<void> => {
+    try {
+        if (!req.user) {
+            res.status(401).json({ message: 'User not authenticated' });
+            return;
+        }
+
+        const ballotId = parseInt(req.params.id);
+        if (isNaN(ballotId)) {
+            res.status(400).json({ message: 'Invalid ballot ID' });
+            return;
+        }
+
+        // Get user's vote
+        const vote = await Vote.findOne({
+            where: {
+                userId: req.user.id,
+                ballotId
+            }
+        });
+
+        if (!vote) {
+            res.status(404).json({ message: 'Vote not found' });
+            return;
+        }
+
+        res.status(200).json(vote);
+    } catch (error: any) {
+        console.error('Error fetching user vote:', error);
+        res.status(500).json({ message: 'Error fetching user vote', error: error.message });
+    }
+};
+
 // Add more ballot-related controller functions here as needed
