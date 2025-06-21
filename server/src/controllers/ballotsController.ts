@@ -18,11 +18,24 @@ interface UserRoleWithRole extends UserRoles {
 // Helper function to format ballot response
 const formatBallotResponse = (ballot: any) => {
     const json = ballot.toJSON();
+    const currentDate = new Date();
+    const endDate = new Date(ballot.limitDate);
+
+    let status;
+    if (ballot.isSuspended) {
+        status = 'Suspended';
+    } else if (endDate < currentDate) {
+        status = 'Ended';
+    } else {
+        status = 'Active';
+    }
+
     return {
         ...json,
         type: json.ballotType, // Map ballotType to type for client compatibility
         endDate: ballot.limitDate.toISOString(),  // Format dates as ISO strings
-        startDate: ballot.createdAt?.toISOString() || new Date().toISOString()
+        startDate: ballot.createdAt?.toISOString() || new Date().toISOString(),
+        status // Add calculated status
     };
 };
 
@@ -409,52 +422,92 @@ export const getBallot = async (req: AuthRequest, res: Response): Promise<void> 
             return;
         }
 
-        // Get user's roles
+        // First try to establish associations if they don't exist
+        try {
+            await UserRoles.belongsTo(Role, { foreignKey: 'roleId' });
+        } catch (error) {
+            console.log('[BallotsController] Association already exists or failed:', error);
+        }
+
+        // Get user's roles with Role information
         const userRoles = await UserRoles.findAll({
-            where: { userId: req.user.id },
-            attributes: ['roleId']
-        });
-        const userRoleIds = userRoles.map(role => role.roleId);
-
-        // Get categories user has access to
-        const categoryRoles = await CategoryRoles.findAll({
             where: {
-                roleId: {
-                    [Op.in]: userRoleIds
-                }
-            },
-            attributes: ['categoryId']
-        });
-        const accessibleCategoryIds = categoryRoles.map(cr => cr.categoryId);
-
-        // Fetch the ballot with its options
-        const ballot = await Ballot.findOne({
-            where: {
-                id: ballotId,
-                categoryId: {
-                    [Op.in]: accessibleCategoryIds
-                }
+                userId: req.user.id
             },
             include: [{
-                model: VotingOption,
-                attributes: ['id', 'title', 'isText']
+                model: Role,
+                attributes: ['id', 'name']
             }]
+        }) as unknown as UserRoleWithRole[];
+
+        // Check if user has admin role by name
+        const isAdmin = userRoles.some(ur => 
+            ur.Role?.name === 'admin' || ur.Role?.name === 'DefaultAdmin'
+        );
+
+        console.log('[BallotsController] Fetching ballot:', {
+            ballotId,
+            userId: req.user.id,
+            isAdmin,
+            userRoles: userRoles.map(ur => ({ roleId: ur.roleId, roleName: ur.Role?.name }))
         });
 
+        // If user is admin, fetch ballot without category restrictions
+        let ballot;
+        if (isAdmin) {
+            ballot = await Ballot.findByPk(ballotId, {
+                include: [{
+                    model: VotingOption,
+                    attributes: ['id', 'title', 'isText']
+                }]
+            });
+        } else {
+            // Get user's role IDs
+            const userRoleIds = userRoles.map(role => role.roleId);
+
+            // Get categories user has access to
+            const categoryRoles = await CategoryRoles.findAll({
+                where: {
+                    roleId: {
+                        [Op.in]: userRoleIds
+                    }
+                },
+                attributes: ['categoryId']
+            });
+            const accessibleCategoryIds = categoryRoles.map(cr => cr.categoryId);
+
+            // Fetch the ballot with category restriction for non-admin users
+            ballot = await Ballot.findOne({
+                where: {
+                    id: ballotId,
+                    categoryId: {
+                        [Op.in]: accessibleCategoryIds
+                    }
+                },
+                include: [{
+                    model: VotingOption,
+                    attributes: ['id', 'title', 'isText']
+                }]
+            });
+        }
+
         if (!ballot) {
+            console.log('[BallotsController] Ballot not found or access denied:', {
+                ballotId,
+                userId: req.user.id,
+                isAdmin
+            });
             res.status(404).json({ message: 'Ballot not found or access denied' });
             return;
         }
 
-        // Format the ballot response
+        // Format and send the response
         const formattedBallot = {
             ...formatBallotResponse(ballot),
-            options: ballot.VotingOptions,
-            status: ballot.isSuspended ? 'Suspended' : 
-                    (new Date(ballot.limitDate) < new Date() ? 'Ended' : 'Active')
+            options: ballot.VotingOptions
         };
 
-        res.status(200).json(formattedBallot);
+        res.json(formattedBallot);
     } catch (error: any) {
         console.error('Error fetching ballot:', error);
         res.status(500).json({ message: 'Error fetching ballot', error: error.message });
@@ -821,6 +874,121 @@ export const getPastBallotsWithVoteStatus = async (req: AuthRequest, res: Respon
         console.error('Error fetching past ballots with vote status:', error);
         res.status(500).json({ 
             message: 'Error fetching past ballots with vote status', 
+            error: error.message 
+        });
+    }
+};
+
+export const getBallotAnalytics = async (req: AuthRequest, res: Response): Promise<void> => {
+    try {
+        if (!req.user) {
+            res.status(401).json({ message: 'User not authenticated' });
+            return;
+        }
+
+        const { id } = req.params;
+        const ballot = await Ballot.findByPk(id, {
+            include: [
+                {
+                    model: VotingOption,
+                    attributes: ['id', 'title']
+                }
+            ]
+        });
+
+        if (!ballot) {
+            res.status(404).json({ message: 'Ballot not found' });
+            return;
+        }
+
+        // Get category roles to determine eligible users
+        const categoryRoles = await CategoryRoles.findAll({
+            where: { categoryId: ballot.categoryId },
+            attributes: ['roleId']
+        });
+        const eligibleRoleIds = categoryRoles.map(cr => cr.roleId);
+
+        // Count eligible users (users with any of the eligible roles)
+        const eligibleUsers = await UserRoles.count({
+            where: {
+                roleId: {
+                    [Op.in]: eligibleRoleIds
+                }
+            },
+            distinct: true,
+            col: 'userId'
+        });
+
+        // Get all votes for this ballot
+        const votes = await Vote.findAll({
+            where: { ballotId: id },
+            attributes: [
+                'optionId',
+                'timestamp'
+            ]
+        });
+
+        // Count total votes
+        const totalVotes = votes.length;
+
+        // For ballots with no votes, return minimal analytics
+        if (totalVotes === 0) {
+            const analytics = {
+                totalVotes: 0,
+                eligibleUsers,
+                participationRate: 0,
+                choiceDistribution: ballot.VotingOptions.map(option => ({
+                    optionId: option.id,
+                    title: option.title,
+                    votes: 0
+                })),
+                hourlyDistribution: Array.from({ length: 24 }, (_, hour) => ({
+                    hour,
+                    votes: 0
+                }))
+            };
+            res.json(analytics);
+            return;
+        }
+
+        // Calculate choice distribution (for single/multiple choice ballots)
+        let choiceDistribution = {};
+        if (ballot.ballotType !== 'TEXT_INPUT' && ballot.ballotType !== 'RANKED_CHOICE') {
+            choiceDistribution = votes.reduce((acc, vote) => {
+                acc[vote.optionId] = (acc[vote.optionId] || 0) + 1;
+                return acc;
+            }, {});
+        }
+
+        // Calculate voting frequency per hour
+        const voteTimestamps = votes.map(vote => new Date(vote.timestamp));
+        const hourlyDistribution = voteTimestamps.reduce((acc, timestamp) => {
+            const hour = timestamp.getHours();
+            acc[hour] = (acc[hour] || 0) + 1;
+            return acc;
+        }, {});
+
+        // Format the response with full analytics
+        const analytics = {
+            totalVotes,
+            eligibleUsers,
+            participationRate: totalVotes / eligibleUsers,
+            choiceDistribution: ballot.VotingOptions.map(option => ({
+                optionId: option.id,
+                title: option.title,
+                votes: choiceDistribution[option.id] || 0
+            })),
+            hourlyDistribution: Array.from({ length: 24 }, (_, hour) => ({
+                hour,
+                votes: hourlyDistribution[hour] || 0
+            }))
+        };
+
+        res.json(analytics);
+    } catch (error: any) {
+        console.error('Error fetching ballot analytics:', error);
+        res.status(500).json({ 
+            message: 'Error fetching ballot analytics', 
             error: error.message 
         });
     }

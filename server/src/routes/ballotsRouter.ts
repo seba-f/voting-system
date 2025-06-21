@@ -8,6 +8,7 @@ import {
     getActiveBallotsForUser,
     getUnvotedBallots,
     getBallot,
+    getBallotAnalytics,
     submitVote,
     getActiveBallotsWithVoteStatus,
     getPastBallotsWithVoteStatus,
@@ -29,6 +30,7 @@ router.get('/unvoted', verifyToken, getUnvotedBallots);
 router.get('/active-with-status', verifyToken, getActiveBallotsWithVoteStatus);
 router.get('/past-with-status', verifyToken, getPastBallotsWithVoteStatus);
 router.get('/voted', verifyToken, getVotedBallots);
+router.get('/:id/analytics', verifyToken, getBallotAnalytics);
 router.get('/:id/vote', verifyToken, getUserVote);
 router.get('/:id', verifyToken, getBallot);
 router.post('/:id/vote', verifyToken, submitVote);
