@@ -10,6 +10,7 @@ import {
     getBallot,
     submitVote,
     getActiveBallotsWithVoteStatus,
+    getPastBallotsWithVoteStatus,
     getVotedBallots,
     getUserVote
 } from '../controllers/ballotsController';
@@ -26,6 +27,7 @@ router.get('/past', verifyToken, getPastBallotsForCategory);
 router.get('/suspended', verifyToken, getSuspendedBallotsForCategory);
 router.get('/unvoted', verifyToken, getUnvotedBallots);
 router.get('/active-with-status', verifyToken, getActiveBallotsWithVoteStatus);
+router.get('/past-with-status', verifyToken, getPastBallotsWithVoteStatus);
 router.get('/voted', verifyToken, getVotedBallots);
 router.get('/:id/vote', verifyToken, getUserVote);
 router.get('/:id', verifyToken, getBallot);
