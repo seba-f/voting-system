@@ -5,7 +5,10 @@ import {
     getActiveBallotsForCategory,
     getPastBallotsForCategory,
     getSuspendedBallotsForCategory,
-    getActiveBallotsForUser
+    getActiveBallotsForUser,
+    getUnvotedBallots,
+    getBallot,
+    submitVote
 } from '../controllers/ballotsController';
 
 const router = express.Router();
@@ -18,5 +21,8 @@ router.get('/active', verifyToken, getActiveBallotsForCategory);
 router.get('/active/:userId', verifyToken, getActiveBallotsForUser);
 router.get('/past', verifyToken, getPastBallotsForCategory);
 router.get('/suspended', verifyToken, getSuspendedBallotsForCategory);
+router.get('/unvoted', verifyToken, getUnvotedBallots);
+router.get('/:id', verifyToken, getBallot);
+router.post('/:id/vote', verifyToken, submitVote);
 
 export default router;

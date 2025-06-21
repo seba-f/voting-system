@@ -6,7 +6,7 @@ import {
     Card, 
     CardContent,
     CircularProgress,
-    Grid
+    Alert
 } from '@mui/material';
 import { BallotCard } from '../components/BallotCard';
 import API  from '../api/axios';
@@ -28,7 +28,9 @@ export const Dashboard: React.FC = () => {
     const { user, isAdmin } = useAuth();
     const [ballots, setBallots] = useState<Ballot[]>([]);
     const [loading, setLoading] = useState(true);
-    const [error, setError] = useState<string | null>(null);    const fetchBallots = useCallback(async () => {
+    const [error, setError] = useState<string | null>(null);
+
+    const fetchBallots = useCallback(async () => {
         if (!user) {
             console.log('[Dashboard] No user found, skipping ballot fetch');
             return;
@@ -57,7 +59,7 @@ export const Dashboard: React.FC = () => {
                 }
             }
 
-            const endpoint = isAdmin() ? '/ballots/active' : `/ballots/active/${user.id}`;
+            const endpoint = isAdmin() ? '/ballots/active' : '/ballots/unvoted';
             console.log('[Dashboard] Fetching ballots from endpoint:', endpoint);
 
             const response = await API.get(endpoint);
@@ -71,12 +73,13 @@ export const Dashboard: React.FC = () => {
             // Cache the new data
             sessionStorage.setItem(cacheKey, JSON.stringify(response.data));
             sessionStorage.setItem(cacheKey + '-timestamp', Date.now().toString());
+            setError(null);
         } catch (err: any) {
             console.error('[Dashboard] Error fetching ballots:', {
                 message: err.message,
                 response: err.response?.data
             });
-            setError('Failed to load ballots');
+            setError(err.response?.data?.message || 'Failed to load ballots');
         } finally {
             setLoading(false);
         }
@@ -100,30 +103,59 @@ export const Dashboard: React.FC = () => {
 
             <Box>
                 <Typography variant="h5" gutterBottom sx={{ color: 'text.secondary', mb: 3 }}>
-                    Currently active ballots
+                    {isAdmin() ? 'Currently active ballots' : 'Ballots awaiting your vote'}
                 </Typography>
 
                 {error && (
-                    <Typography color="error" sx={{ mb: 2 }}>
+                    <Alert severity="error" sx={{ mb: 3 }}>
                         {error}
-                    </Typography>
-                )}
-
-                <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: 'repeat(2, 1fr)' }, gap: 3 }}>
-                    {ballots.length === 0 ? (
-                        <Card>
-                            <CardContent>
-                                <Typography color="text.secondary">
-                                    No active ballots available.
-                                </Typography>
-                            </CardContent>
-                        </Card>
-                    ) : (
-                        ballots.map(ballot => (
+                    </Alert>
+                )}                {ballots.length === 0 ? (
+                    <Box
+                        sx={{
+                            display: 'flex',
+                            flexDirection: 'column',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            minHeight: '50vh',
+                            backgroundColor: 'background.main',
+                            borderRadius: 2,
+                            p: 4,
+                            textAlign: 'center'
+                        }}
+                    >
+                        <Typography
+                            variant="h6"
+                            sx={{
+                                color: 'text.secondary',
+                                mb: 1,
+                                fontWeight: 'medium'
+                            }}
+                        >
+                            {isAdmin() 
+                                ? 'No Active Ballots'
+                                : 'All Caught Up!'}
+                        </Typography>
+                        <Typography
+                            variant="body1"
+                            sx={{
+                                color: 'text.secondary',
+                                maxWidth: '500px',
+                                mx: 'auto'
+                            }}
+                        >
+                            {isAdmin() 
+                                ? 'There are currently no active ballots in the system. Create a new ballot to get started.'
+                                : 'You\'ve voted on all available ballots. Check back later for new voting opportunities.'}
+                        </Typography>
+                    </Box>
+                ) : (
+                    <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: 'repeat(2, 1fr)' }, gap: 3 }}>
+                        {ballots.map(ballot => (
                             <BallotCard key={ballot.id} ballot={ballot} />
-                        ))
-                    )}
-                </Box>
+                        ))}
+                    </Box>
+                )}
             </Box>
         </Box>
     );

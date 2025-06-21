@@ -6,6 +6,7 @@ import CategoryRoles from '../models/entities/intermediary/categoryRolesModel';
 import UserRoles from '../models/entities/intermediary/userRolesModel';
 import Role from '../models/entities/user/roleModel';
 import { Op, FindOptions } from 'sequelize';
+import Vote from '../models/entities/voting/voteModel';
 
 interface UserRoleWithRole extends UserRoles {
     Role?: {
@@ -313,6 +314,244 @@ export const getActiveBallotsForUser = async (req: AuthRequest, res: Response): 
             stack: error.stack
         });
         res.status(500).json({ message: 'Error fetching active ballots', error: error.message });
+    }
+};
+
+export const getUnvotedBallots = async (req: AuthRequest, res: Response): Promise<void> => {
+    try {
+        if (!req.user) {
+            res.status(401).json({ message: 'User not authenticated' });
+            return;
+        }
+
+        const currentDate = new Date();
+
+        // First get user's roles
+        const userRoles = await UserRoles.findAll({
+            where: {
+                userId: req.user.id
+            },
+            attributes: ['roleId']
+        });
+
+        const userRoleIds = userRoles.map(role => role.roleId);
+
+        // Get categories that user has access to through their roles
+        const categoryRoles = await CategoryRoles.findAll({
+            where: {
+                roleId: {
+                    [Op.in]: userRoleIds
+                }
+            },
+            attributes: ['categoryId']
+        });
+
+        const accessibleCategoryIds = categoryRoles.map(cr => cr.categoryId);
+        
+        // Get all active ballots in categories user has access to
+        const ballots = await Ballot.findAll({
+            where: {
+                limitDate: {
+                    [Op.gt]: currentDate
+                },
+                isSuspended: false,
+                categoryId: {
+                    [Op.in]: accessibleCategoryIds
+                }
+            },
+            include: [{
+                model: VotingOption,
+                attributes: ['id', 'title', 'isText']
+            }]
+        });
+
+        // Get all ballots the user has voted on
+        const votedBallotIds = await Vote.findAll({
+            where: {
+                userId: req.user.id
+            },
+            attributes: ['ballotId'],
+            raw: true
+        });
+
+        const votedIds = votedBallotIds.map(vote => vote.ballotId);
+
+        // Filter out ballots that user has already voted on
+        const unvotedBallots = ballots.filter(ballot => !votedIds.includes(ballot.id));
+
+        // Format ballots for response
+        const formattedBallots = unvotedBallots.map(ballot => {
+            const formatted = formatBallotResponse(ballot);
+            return {
+                ...formatted,
+                status: formatted.isSuspended ? 'Suspended' : 
+                        (new Date(formatted.endDate) < new Date() ? 'Ended' : 'Active')
+            };
+        });
+
+        res.status(200).json(formattedBallots);
+    } catch (error: any) {
+        console.error('Error fetching unvoted ballots:', error);
+        res.status(500).json({ message: 'Error fetching unvoted ballots', error: error.message });
+    }
+};
+
+export const getBallot = async (req: AuthRequest, res: Response): Promise<void> => {
+    try {
+        if (!req.user) {
+            res.status(401).json({ message: 'User not authenticated' });
+            return;
+        }
+
+        const ballotId = parseInt(req.params.id);
+        if (isNaN(ballotId)) {
+            res.status(400).json({ message: 'Invalid ballot ID' });
+            return;
+        }
+
+        // Get user's roles
+        const userRoles = await UserRoles.findAll({
+            where: { userId: req.user.id },
+            attributes: ['roleId']
+        });
+        const userRoleIds = userRoles.map(role => role.roleId);
+
+        // Get categories user has access to
+        const categoryRoles = await CategoryRoles.findAll({
+            where: {
+                roleId: {
+                    [Op.in]: userRoleIds
+                }
+            },
+            attributes: ['categoryId']
+        });
+        const accessibleCategoryIds = categoryRoles.map(cr => cr.categoryId);
+
+        // Fetch the ballot with its options
+        const ballot = await Ballot.findOne({
+            where: {
+                id: ballotId,
+                categoryId: {
+                    [Op.in]: accessibleCategoryIds
+                }
+            },
+            include: [{
+                model: VotingOption,
+                attributes: ['id', 'title', 'isText']
+            }]
+        });
+
+        if (!ballot) {
+            res.status(404).json({ message: 'Ballot not found or access denied' });
+            return;
+        }
+
+        // Format the ballot response
+        const formattedBallot = {
+            ...formatBallotResponse(ballot),
+            options: ballot.VotingOptions,
+            status: ballot.isSuspended ? 'Suspended' : 
+                    (new Date(ballot.limitDate) < new Date() ? 'Ended' : 'Active')
+        };
+
+        res.status(200).json(formattedBallot);
+    } catch (error: any) {
+        console.error('Error fetching ballot:', error);
+        res.status(500).json({ message: 'Error fetching ballot', error: error.message });
+    }
+};
+
+export const submitVote = async (req: AuthRequest, res: Response): Promise<void> => {
+    try {
+        if (!req.user) {
+            res.status(401).json({ message: 'User not authenticated' });
+            return;
+        }
+
+        const ballotId = parseInt(req.params.id);
+        if (isNaN(ballotId)) {
+            res.status(400).json({ message: 'Invalid ballot ID' });
+            return;
+        }
+
+        // Get user's roles
+        const userRoles = await UserRoles.findAll({
+            where: { userId: req.user.id },
+            attributes: ['roleId']
+        });
+        const userRoleIds = userRoles.map(role => role.roleId);
+
+        // Get categories user has access to
+        const categoryRoles = await CategoryRoles.findAll({
+            where: {
+                roleId: {
+                    [Op.in]: userRoleIds
+                }
+            },
+            attributes: ['categoryId']
+        });
+        const accessibleCategoryIds = categoryRoles.map(cr => cr.categoryId);
+
+        // Fetch the ballot
+        const ballot = await Ballot.findOne({
+            where: {
+                id: ballotId,
+                categoryId: {
+                    [Op.in]: accessibleCategoryIds
+                },
+                isSuspended: false,
+                limitDate: {
+                    [Op.gt]: new Date()
+                }
+            }
+        });
+
+        if (!ballot) {
+            res.status(404).json({ message: 'Ballot not found, expired, or access denied' });
+            return;
+        }
+
+        // Check if user has already voted
+        const existingVote = await Vote.findOne({
+            where: {
+                userId: req.user.id,
+                ballotId
+            }
+        });
+
+        if (existingVote) {
+            res.status(400).json({ message: 'You have already voted on this ballot' });
+            return;
+        }
+
+        // Validate vote based on ballot type
+        const { optionId } = req.body;
+
+        // Check if the option exists and belongs to this ballot
+        const option = await VotingOption.findOne({
+            where: {
+                id: optionId,
+                ballotId
+            }
+        });
+
+        if (!option) {
+            res.status(400).json({ message: 'Invalid voting option' });
+            return;
+        }
+
+        // Create the vote
+        await Vote.create({
+            userId: req.user.id,
+            ballotId,
+            optionId,
+            timestamp: new Date()
+        });
+
+        res.status(201).json({ message: 'Vote submitted successfully' });
+    } catch (error: any) {
+        console.error('Error submitting vote:', error);
+        res.status(500).json({ message: 'Error submitting vote', error: error.message });
     }
 };
 

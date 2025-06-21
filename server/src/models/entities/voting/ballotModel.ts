@@ -20,6 +20,7 @@ class Ballot extends Model{
     public suspensionDuration:number;
     public adminId:number;
     public ballotType: BallotType;
+    public VotingOptions?: any[]; // for TypeScript to recognize the included options
 }
 
 Ballot.init({
