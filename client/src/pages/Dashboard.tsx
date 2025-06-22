@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { useAuth } from '../auth/AuthContext';
+import { useLocation } from 'react-router-dom';
 import { 
     Box, 
     Typography, 
@@ -11,6 +12,7 @@ import {
 import { BallotCard } from '../components/BallotCard';
 import API  from '../api/axios';
 import { PageHeader } from '../components/PageHeader';
+import { contentContainerStyle, scrollableContentStyle } from '../styles/scrollbar';
 
 interface Ballot {
     id: number;
@@ -24,11 +26,18 @@ interface Ballot {
     categoryId: number;
 }
 
+interface BallotResponse {
+    voted: Ballot[];
+    unvoted: Ballot[];
+}
+
 export const Dashboard: React.FC = () => {
     const { user, isAdmin } = useAuth();
+    const location = useLocation();
     const [ballots, setBallots] = useState<Ballot[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const [refreshKey, setRefreshKey] = useState(0);
 
     const fetchBallots = useCallback(async () => {
         if (!user) {
@@ -48,8 +57,9 @@ export const Dashboard: React.FC = () => {
             const cachedData = sessionStorage.getItem(cacheKey);
             const cachedTimestamp = sessionStorage.getItem(cacheKey + '-timestamp');
             
-            // Use cached data if less than 30 seconds old
-            if (cachedData && cachedTimestamp) {
+            // Check if we just submitted a vote or if cached data is fresh
+            const voteJustSubmitted = location.state?.voteJustSubmitted;
+            if (!voteJustSubmitted && cachedData && cachedTimestamp) {
                 const age = Date.now() - parseInt(cachedTimestamp);
                 if (age < 30000) { // 30 seconds
                     console.log('[Dashboard] Using cached ballot data, age:', age, 'ms');
@@ -59,19 +69,24 @@ export const Dashboard: React.FC = () => {
                 }
             }
 
-            const endpoint = isAdmin() ? '/ballots/active' : '/ballots/unvoted';
+            const endpoint = isAdmin() ? '/ballots/active' : '/ballots/active-with-status';
             console.log('[Dashboard] Fetching ballots from endpoint:', endpoint);
 
             const response = await API.get(endpoint);
-            console.log('[Dashboard] Received ballots:', {
-                count: response.data.length,
-                ballots: response.data.map((b: Ballot) => ({ id: b.id, title: b.title, categoryId: b.categoryId }))
+            const ballotsToShow = isAdmin() 
+                ? response.data 
+                : (response.data as BallotResponse).unvoted;
+
+            console.log('[Dashboard] Processing ballots:', {
+                total: ballotsToShow?.length || 0,
+                isAdmin: isAdmin(),
+                dataType: Array.isArray(ballotsToShow) ? 'array' : typeof ballotsToShow
             });
             
-            setBallots(response.data);
+            setBallots(ballotsToShow || []);
             
             // Cache the new data
-            sessionStorage.setItem(cacheKey, JSON.stringify(response.data));
+            sessionStorage.setItem(cacheKey, JSON.stringify(ballotsToShow));
             sessionStorage.setItem(cacheKey + '-timestamp', Date.now().toString());
             setError(null);
         } catch (err: any) {
@@ -83,25 +98,32 @@ export const Dashboard: React.FC = () => {
         } finally {
             setLoading(false);
         }
-    }, [isAdmin, user]);
+    }, [isAdmin, user, location.state?.voteJustSubmitted]);
 
     useEffect(() => {
         fetchBallots();
+        // Clear the voteJustSubmitted flag from location state
+        if (location.state?.voteJustSubmitted) {
+            window.history.replaceState({}, document.title);
+        }
     }, [fetchBallots]);
 
     if (loading) {
         return (
-            <Box sx={{ display: 'flex', justifyContent: 'center', mt: 4 }}>
-                <CircularProgress />
+            <Box sx={contentContainerStyle}>
+                <PageHeader title={`Welcome, ${user?.username}!`} />
+                <Box sx={{ display: 'flex', justifyContent: 'center', mt: 4 }}>
+                    <CircularProgress />
+                </Box>
             </Box>
         );
     }
 
     return (
-        <Box sx={{ p: 3 }}>
+        <Box sx={contentContainerStyle}>
             <PageHeader title={`Welcome, ${user?.username}!`} />
 
-            <Box>
+            <Box sx={scrollableContentStyle}>
                 <Typography variant="h5" gutterBottom sx={{ color: 'text.secondary', mb: 3 }}>
                     {isAdmin() ? 'Currently active ballots' : 'Ballots awaiting your vote'}
                 </Typography>

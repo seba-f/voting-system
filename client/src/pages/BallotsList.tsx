@@ -18,6 +18,7 @@ import { BallotCard } from "../components/BallotCard";
 import API from "../api/axios";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../auth/AuthContext";
+import { contentContainerStyle, scrollableContentStyle } from "../styles/scrollbar";
 
 interface TabPanelProps {
 	children?: React.ReactNode;
@@ -68,7 +69,7 @@ function a11yProps(index: number) {
 export const BallotsList = () => {
 	const [activeTab, setActiveTab] = useState(0);
 	const [activeBallotsData, setActiveBallotsData] = useState<Ballot[] | ActiveBallotsData>([]);
-	const [pastBallotsData, setPastBallotsData] = useState<Ballot[] | ActiveBallotsData>([]); // Can be array for admin or ActiveBallotsData for users
+	const [pastBallotsData, setPastBallotsData] = useState<Ballot[]>([]); // Can be array for admin or ActiveBallotsData for users
 	const [suspendedBallotsData, setSuspendedBallotsData] = useState<Ballot[]>([]);
 	const [loading, setLoading] = useState(true);
 	const { isAdmin, user } = useAuth();
@@ -229,7 +230,7 @@ export const BallotsList = () => {
 	};
 
 	return (
-		<Box sx={{ p: 3 }}>
+		<Box sx={contentContainerStyle}>
 			<PageHeader
 				title={isAdmin() ? "Manage Ballots" : "Ballots"}
 				onRefresh={handleRefresh}
@@ -244,7 +245,7 @@ export const BallotsList = () => {
 					</Button>
 				) : undefined}
 			/>
-			<Paper sx={{ width: "100%", mb: 2, mt: 2 }}>
+			<Paper sx={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
 				<Tabs
 					value={activeTab}
 					onChange={handleTabChange}
@@ -256,89 +257,41 @@ export const BallotsList = () => {
 					<Tab label="Suspended Ballots" {...a11yProps(2)} />
 				</Tabs>
 
-				<TabPanel value={activeTab} index={0}>
-					{renderActiveBallotsContent()}
-				</TabPanel>
-
-				<TabPanel value={activeTab} index={1}>					{loading ? (
-                        <Box sx={{ display: 'flex', justifyContent: 'center', p: 3 }}>
-                            <CircularProgress />
-                        </Box>
-                    ) : isAdmin() ? (
-                        Array.isArray(pastBallotsData) && pastBallotsData.length > 0 ? (
-                            <Box
-                                sx={{
-                                    display: "grid",
-                                    gap: 2,
-                                    gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))",
-                                }}
-                            >
-                                {(pastBallotsData as Ballot[]).map((ballot: any) => (
-                                    <BallotCard key={ballot.id} ballot={{...ballot, status:"Ended"}} />
-                                ))}
-                            </Box>
-                        ) : (
-                            <Typography>No past ballots found.</Typography>
-                        )
-                    ) : (
-                        <Box sx={{ display: 'flex', flexDirection: { xs: 'column', md: 'row' }, gap: 3 }}>
-                            <Box sx={{ flex: 1 }}>
-                                <Typography variant="h6" gutterBottom color="primary">
-                                    Unvoted Past Ballots
-                                </Typography>
-                                {(pastBallotsData as ActiveBallotsData).unvoted.length === 0 ? (
-                                    <Typography color="text.secondary">
-                                        No unvoted past ballots.
-                                    </Typography>
-                                ) : (
-                                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                                        {(pastBallotsData as ActiveBallotsData).unvoted.map((ballot: Ballot) => (
-                                            <BallotCard key={ballot.id} ballot={{...ballot, status:"Ended"}} hasVoted={false} />
-                                        ))}
-                                    </Box>
-                                )}
-                            </Box>
-                            <Box sx={{ flex: 1 }}>
-                                <Typography variant="h6" gutterBottom color="primary">
-                                    Voted Past Ballots
-                                </Typography>
-                                {(pastBallotsData as ActiveBallotsData).voted.length === 0 ? (
-                                    <Typography color="text.secondary">
-                                        You haven't voted on any past ballots.
-                                    </Typography>
-                                ) : (
-                                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                                        {(pastBallotsData as ActiveBallotsData).voted.map((ballot: Ballot) => (
-                                            <BallotCard key={ballot.id} ballot={{...ballot, status:"Ended"}} hasVoted={true} />
-                                        ))}
-                                    </Box>
-                                )}
-                            </Box>
-                        </Box>
-                    )}
-				</TabPanel>
-
-				<TabPanel value={activeTab} index={2}>
-					{loading ? (
-						<Box sx={{ display: 'flex', justifyContent: 'center', p: 3 }}>
-							<CircularProgress />
-						</Box>
-					) : suspendedBallotsData.length > 0 ? (
-						<Box
-							sx={{
+				<Box sx={scrollableContentStyle}>
+					<TabPanel value={activeTab} index={0}>
+						{renderActiveBallotsContent()}
+					</TabPanel>
+					<TabPanel value={activeTab} index={1}>
+						{pastBallotsData.length > 0 ? (
+							<Box sx={{
 								display: "grid",
 								gap: 2,
 								gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))",
-							}}
-						>
-							{suspendedBallotsData.map((ballot: any) => (
-								<BallotCard key={ballot.id} ballot={ballot} />
-							))}
-						</Box>
-					) : (
-						<Typography>No suspended ballots found.</Typography>
-					)}
-				</TabPanel>
+							}}>
+								{pastBallotsData.map((ballot: any) => (
+									<BallotCard key={ballot.id} ballot={ballot} />
+								))}
+							</Box>
+						) : (
+							<Typography>No past ballots found.</Typography>
+						)}
+					</TabPanel>
+					<TabPanel value={activeTab} index={2}>
+						{suspendedBallotsData.length > 0 ? (
+							<Box sx={{
+								display: "grid",
+								gap: 2,
+								gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))",
+							}}>
+								{suspendedBallotsData.map((ballot: any) => (
+									<BallotCard key={ballot.id} ballot={ballot} />
+								))}
+							</Box>
+						) : (
+							<Typography>No suspended ballots found.</Typography>
+						)}
+					</TabPanel>
+				</Box>
 			</Paper>
 		</Box>
 	);

@@ -10,6 +10,7 @@ import {
     Paper,
     Alert
 } from '@mui/material';
+import { scrollbarStyle } from '../../styles/scrollbar';
 
 interface Option {
     id: number;
@@ -91,8 +92,11 @@ export const SingleChoiceVoteForm: React.FC<SingleChoiceVoteFormProps> = ({
             component="form"
             onSubmit={handleSubmit}
             sx={{ 
-                p: 3,
                 position: 'relative',
+                maxHeight: '75vh',
+                display: 'flex',
+                flexDirection: 'column',
+                overflow: 'hidden',
                 ...(readOnly && {
                     backgroundColor: 'action.disabledBackground',
                     '& .MuiFormControlLabel-root': {
@@ -101,51 +105,78 @@ export const SingleChoiceVoteForm: React.FC<SingleChoiceVoteFormProps> = ({
                 })
             }}
         >
-            <Typography variant="h6" gutterBottom>
-                {ballot.title}
-            </Typography>
-            <Typography variant="body1" sx={{ mb: 3 }}>
-                {ballot.description}
-            </Typography>
+            {/* Header section - always visible */}
+            <Box sx={{ p: 3, borderBottom: 1, borderColor: 'divider', flexShrink: 0 }}>
+                <Typography variant="h6" gutterBottom>
+                    {ballot.title}
+                </Typography>
+                <Typography variant="body1">
+                    {ballot.description}
+                </Typography>
 
-            {error && (
-                <Alert severity="error" sx={{ mb: 3 }}>
-                    {error}
-                </Alert>
-            )}
+                {error && (
+                    <Alert severity="error" sx={{ mt: 2 }}>
+                        {error}
+                    </Alert>
+                )}
+            </Box>
 
-            <FormControl component="fieldset" sx={{ width: '100%' }}>
-                <RadioGroup
-                    value={selectedOption ?? ''}
-                    onChange={(e) => !readOnly && setSelectedOption(Number(e.target.value))}
+            {/* Scrollable options section */}
+            <Box sx={{
+                flex: 1,
+                minHeight: 0,
+                overflow: 'auto',
+                ...scrollbarStyle
+            }}>
+                <FormControl 
+                    component="fieldset" 
+                    sx={{ 
+                        width: '100%',
+                        p: 3,
+                        pt:1
+                    }}
                 >
-                    {ballot.options.map((option) => (
-                        <FormControlLabel
-                            key={option.id}
-                            value={option.id}
-                            control={
-                                <Radio 
-                                    disabled={readOnly}
-                                    checked={selectedOption === option.id}
-                                />
-                            }
-                            label={option.title}
-                            disabled={readOnly}
-                            sx={{
-                                ...(readOnly && selectedOption === option.id && {
-                                    '.MuiFormControlLabel-label': {
-                                        fontWeight: 'bold',
-                                        color: 'primary.main'
-                                    }
-                                })
-                            }}
-                        />
-                    ))}
-                </RadioGroup>
-            </FormControl>
+                    <RadioGroup
+                        value={selectedOption ?? ''}
+                        onChange={(e) => !readOnly && setSelectedOption(Number(e.target.value))}
+                    >
+                        {ballot.options.map((option) => (
+                            <FormControlLabel
+                                key={option.id}
+                                value={option.id}
+                                control={
+                                    <Radio 
+                                        disabled={readOnly}
+                                        checked={selectedOption === option.id}
+                                    />
+                                }
+                                label={option.title}
+                                disabled={readOnly}
+                                sx={{
+                                    ...(readOnly && selectedOption === option.id && {
+                                        '.MuiFormControlLabel-label': {
+                                            fontWeight: 'bold',
+                                            color: 'primary.main'
+                                        }
+                                    })
+                                }}
+                            />
+                        ))}
+                    </RadioGroup>
+                </FormControl>
+            </Box>
 
+            {/* Footer section - always visible */}
             {!readOnly && (
-                <Box sx={{ mt: 3, display: 'flex', justifyContent: 'flex-end' }}>
+                <Box sx={{ 
+                    p: 2, 
+                    display: 'flex', 
+                    justifyContent: 'flex-end',
+                    borderTop: 1,
+                    borderColor: 'divider',
+                    bgcolor: 'background.paper',
+                    flexShrink: 0
+                }}>
                     <Button
                         type="submit"
                         variant="contained"

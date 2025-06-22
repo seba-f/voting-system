@@ -8,6 +8,7 @@ interface PageHeaderProps {
     onRefresh?: () => void;
     isRefreshing?: boolean;
     action?: React.ReactNode;
+    statusAlert?: React.ReactNode;
 }
 
 export const PageHeader: React.FC<PageHeaderProps> = ({ 
@@ -15,7 +16,8 @@ export const PageHeader: React.FC<PageHeaderProps> = ({
     children, 
     onRefresh,
     isRefreshing = false,
-    action
+    action,
+    statusAlert
 }) => {
     return (
         <Box sx={{ mb: 2 }}>
@@ -24,7 +26,8 @@ export const PageHeader: React.FC<PageHeaderProps> = ({
                 justifyContent: 'space-between', 
                 alignItems: 'center',
                 mb: 2
-            }}>                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+            }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, flexGrow: 1 }}>
                     <Typography 
                         variant="h4" 
                         sx={{ 
@@ -34,6 +37,11 @@ export const PageHeader: React.FC<PageHeaderProps> = ({
                     >
                         {title}
                     </Typography>
+                    {statusAlert && (
+                        <Box sx={{ flexGrow: 1, maxWidth: '50%' }}>
+                            {statusAlert}
+                        </Box>
+                    )}
                     {action}
                     {onRefresh && (
                         <Tooltip title="Refresh">
@@ -62,4 +70,4 @@ export const PageHeader: React.FC<PageHeaderProps> = ({
             <Divider />
         </Box>
     );
-};
+}

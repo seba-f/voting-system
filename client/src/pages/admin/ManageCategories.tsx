@@ -30,6 +30,7 @@ import API from '../../api/axios';
 import { PageHeader } from '../../components/PageHeader';
 import { CategoryCard } from '../../components/CategoryCard';
 import { useAlert } from '../../components/AlertContext';
+import { contentContainerStyle, scrollableContentStyle } from '../../styles/scrollbar';
 
 interface Category {
     id: number;
@@ -151,59 +152,56 @@ export const CategoriesList: React.FC = () => {
         );
 
     return (
-        <Box sx={{ p: 3 }}>
-            <PageHeader 
-                title="Manage Categories" 
-                onRefresh={handleRefresh}
-                isRefreshing={isRefreshing}
-            />
-
-            <Box sx={{ display: 'flex', gap: 3 }}>
-                <Box sx={{ flex: 1 }}>
-                    {/* Create Category Button Card */}
-                    <Card 
-                        sx={{ 
-                            mb: 2,
-                            cursor: 'pointer',
-                            '&:hover': {
-                                bgcolor: theme.palette.action.hover
-                            }
-                        }}
-                    >
-                        <CardContent 
-                            onClick={() => setIsCreateFormExpanded(!isCreateFormExpanded)}
+        <Box sx={contentContainerStyle}>
+            <PageHeader title="Manage Categories" />
+            <Box sx={{ display: 'flex', gap: 3, height: 'calc(100% - 32px)', overflow: 'hidden' }}>
+                {/* Left side - Main content */}
+                <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+                    {/* Create Category Button - Fixed */}
+                    <Box sx={{ mb: 2 }}>
+                        <Card 
                             sx={{ 
-                                p: '12px !important',
-                                "&:last-child": { pb: '12px !important' }
+                                cursor: 'pointer',
+                                '&:hover': {
+                                    bgcolor: theme.palette.action.hover
+                                }
                             }}
                         >
-                            <Box 
+                            <CardContent 
+                                onClick={() => setIsCreateFormExpanded(!isCreateFormExpanded)}
                                 sx={{ 
-                                    display: 'flex', 
-                                    justifyContent: 'space-between', 
-                                    alignItems: 'center'
+                                    p: '12px !important',
+                                    "&:last-child": { pb: '12px !important' }
                                 }}
                             >
-                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                                    <AddIcon color="primary" />
-                                    <Typography variant="h6" color="primary">
-                                        Create New Category
-                                    </Typography>
-                                </Box>
-                                <ExpandMoreIcon 
+                                <Box 
                                     sx={{ 
-                                        transform: isCreateFormExpanded ? 'rotate(180deg)' : 'none',
-                                        transition: theme.transitions.create('transform'),
-                                        color: theme.palette.primary.main
-                                    }} 
-                                />
-                            </Box>
-                        </CardContent>
-                    </Card>
+                                        display: 'flex', 
+                                        justifyContent: 'space-between', 
+                                        alignItems: 'center'
+                                    }}
+                                >
+                                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                        <AddIcon color="primary" />
+                                        <Typography variant="h6" color="primary">
+                                            Create New Category
+                                        </Typography>
+                                    </Box>
+                                    <ExpandMoreIcon 
+                                        sx={{ 
+                                            transform: isCreateFormExpanded ? 'rotate(180deg)' : 'none',
+                                            transition: theme.transitions.create('transform'),
+                                            color: theme.palette.primary.main
+                                        }} 
+                                    />
+                                </Box>
+                            </CardContent>
+                        </Card>
+                    </Box>
 
-                    {/* Create Category Form Card */}
-                    <Collapse in={isCreateFormExpanded}>
-                        <Card sx={{ mb: 3 }}>
+                    {/* Create Category Form - Fixed */}
+                    <Collapse in={isCreateFormExpanded} sx={{ mb: 2 }}>
+                        <Card>
                             <CardContent>
                                 <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                                     <TextField
@@ -212,7 +210,7 @@ export const CategoriesList: React.FC = () => {
                                         value={newCategoryName}
                                         onChange={(e) => setNewCategoryName(e.target.value)}
                                     />
-                                      <Autocomplete
+                                    <Autocomplete
                                         multiple
                                         disableCloseOnSelect
                                         value={selectedRoleIds.map(id => availableRoles.find(role => role.id === id)).filter(Boolean)}
@@ -286,39 +284,45 @@ export const CategoriesList: React.FC = () => {
                         </Card>
                     </Collapse>
 
-                    {/* Categories List */}
-                    {error && (
-                        <Typography color="error" sx={{ mb: 2 }}>
-                            {error}
-                        </Typography>
-                    )}
-
+                    {/* Scrollable Categories List */}
                     <Box sx={{ 
-                        display: 'flex',
-                        flexDirection: 'column',
-                        gap: 2
+                        ...scrollableContentStyle,
+                        flex: 1,
+                        minHeight: 0 // Important for nested flex containers
                     }}>
-                        {filteredCategories.length === 0 ? (
-                            <Typography color="text.secondary">
-                                No categories found.
+                        {error && (
+                            <Typography color="error" sx={{ mb: 2 }}>
+                                {error}
                             </Typography>
-                        ) : (
-                            filteredCategories.map(category => (
-                                <CategoryCard 
-                                    key={category.id}
-                                    category={category}
-                                    onDelete={handleCategoryDelete}
-                                />
-                            ))
                         )}
+
+                        <Box sx={{ 
+                            display: 'flex',
+                            flexDirection: 'column',
+                            gap: 2
+                        }}>
+                            {filteredCategories.length === 0 ? (
+                                <Typography color="text.secondary">
+                                    No categories found.
+                                </Typography>
+                            ) : (
+                                filteredCategories.map(category => (
+                                    <CategoryCard 
+                                        key={category.id}
+                                        category={category}
+                                        onDelete={handleCategoryDelete}
+                                    />
+                                ))
+                            )}
+                        </Box>
                     </Box>
                 </Box>
 
                 {/* Divider */}
                 <Divider orientation="vertical" flexItem sx={{ backgroundColor: theme.palette.secondary.main }} />
 
-                {/* Filters Side Panel */}
-                <Box sx={{ width: 280 }}>
+                {/* Right side - Filters panel */}
+                <Box sx={{ width: 280, flexShrink: 0 }}>
                     <Card>
                         <CardContent>
                             <Typography variant="h6" gutterBottom>

@@ -84,9 +84,12 @@ const ViewBallot: React.FC = () => {
         try {
             const response = await API.post(`/ballots/${id}/vote`, vote);
             console.log('[ViewBallot] Vote submitted successfully:', response.data);
+            // Clear the ballots cache to force a refresh
+            sessionStorage.removeItem('ballots-user-' + response.data.userId);
+            sessionStorage.removeItem('ballots-user-' + response.data.userId + '-timestamp');
             // Update local state before navigating
             setUserVote(response.data);
-            navigate('/dashboard');
+            navigate('/dashboard', { state: { voteJustSubmitted: true } });
         } catch (err: any) {
             console.error('[ViewBallot] Error submitting vote:', {
                 error: err,
@@ -135,21 +138,31 @@ const ViewBallot: React.FC = () => {
         ballotStatus: ballot.status
     });
 
+    const statusAlert = isReadOnly ? (
+        <Alert 
+            severity={userVote ? "info" : "warning"}
+            sx={{
+                '& .MuiAlert-message': {
+                    padding: '4px 0',
+                },
+                '& .MuiAlert-icon': {
+                    padding: '4px 0',
+                }
+            }}
+        >
+            {userVote 
+                ? "You've already voted on this ballot" 
+                : "This ballot is no longer active"
+            }
+        </Alert>
+    ) : null;
+
     return (
         <Box sx={{ p: 3 }}>
-            <PageHeader title="View Ballot" />
-            
-            {isReadOnly && (
-                <Alert 
-                    severity={userVote ? "info" : "warning"} 
-                    sx={{ mt: 2, mb: 2 }}
-                >
-                    {userVote 
-                        ? "You've already voted on this ballot" 
-                        : "This ballot is no longer active"
-                    }
-                </Alert>
-            )}
+            <PageHeader 
+                title="View Ballot"
+                statusAlert={statusAlert}
+            />
             
             {ballot.type === 'SINGLE_CHOICE' && (
                 <SingleChoiceVoteForm

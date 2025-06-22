@@ -14,6 +14,7 @@ import { PageHeader } from "../../components/PageHeader";
 import { BallotCard } from "../../components/BallotCard";
 import API from "../../api/axios";
 import { useNavigate } from "react-router-dom";
+import { contentContainerStyle, scrollableContentStyle } from "../../styles/scrollbar";
 
 interface TabPanelProps {
 	children?: React.ReactNode;
@@ -105,7 +106,7 @@ export const ManageBallots = () => {
 		fetchBallots();
 	};
 	return (
-		<Box sx={{ p: 3 }}>
+		<Box sx={contentContainerStyle}>
 			<PageHeader
 				title="Manage Ballots"
 				onRefresh={handleRefresh}
@@ -120,7 +121,7 @@ export const ManageBallots = () => {
 					</Button>
 				}
 			/>
-			<Paper sx={{ width: "100%", mb: 2, mt: 2 }}>
+			<Paper sx={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
 				<Tabs
 					value={activeTab}
 					onChange={handleTabChange}
@@ -132,68 +133,53 @@ export const ManageBallots = () => {
 					<Tab label="Suspended Ballots" {...a11yProps(2)} />
 				</Tabs>
 
-				<TabPanel value={activeTab} index={0}>
-					{loading ? (
-						<Typography>Loading active ballots...</Typography>
-					) : activeBallotsData.length > 0 ? (
-						<Box
-							sx={{
+				<Box sx={scrollableContentStyle}>
+					<TabPanel value={activeTab} index={0}>
+						{activeBallotsData.length > 0 ? (
+							<Box sx={{
 								display: "grid",
 								gap: 2,
 								gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))",
-							}}
-						>
-							{activeBallotsData.map((ballot: any) => (
-								<BallotCard key={ballot.id} ballot={ballot} />
-							))}
-						</Box>
-					) : (
-						<Typography>No active ballots found.</Typography>
-					)}
-				</TabPanel>
-
-				<TabPanel value={activeTab} index={1}>
-					{loading ? (
-						<Typography>Loading past ballots...</Typography>
-					) : pastBallotsData.length > 0 ? (
-						<Box
-							sx={{
+							}}>
+								{activeBallotsData.map((ballot: any) => (
+									<BallotCard key={ballot.id} ballot={ballot} />
+								))}
+							</Box>
+						) : (
+							<Typography>No active ballots found.</Typography>
+						)}
+					</TabPanel>
+					<TabPanel value={activeTab} index={1}>
+						{pastBallotsData.length > 0 ? (
+							<Box sx={{
 								display: "grid",
 								gap: 2,
 								gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))",
-							}}
-						>
-							{pastBallotsData.map((ballot: any) => (
-								<BallotCard key={ballot.id} ballot={{...ballot, status:"Ended"}} />
-							))}
-						</Box>
-					) : (
-						<Typography>No past ballots found.</Typography>
-					)}
-				</TabPanel>
-
-				<TabPanel value={activeTab} index={2}>
-					{loading ? (
-						<Typography>Loading suspended ballots...</Typography>
-					) : suspendedBallotsData.length > 0 ? (
-						<Box
-							sx={{
+							}}>
+								{pastBallotsData.map((ballot: any) => (
+									<BallotCard key={ballot.id} ballot={ballot} />
+								))}
+							</Box>
+						) : (
+							<Typography>No past ballots found.</Typography>
+						)}
+					</TabPanel>
+					<TabPanel value={activeTab} index={2}>
+						{suspendedBallotsData.length > 0 ? (
+							<Box sx={{
 								display: "grid",
 								gap: 2,
 								gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))",
-							}}
-						>
-							{suspendedBallotsData.map((ballot: any) => (
-								<BallotCard 
-									key={ballot.id} 
-									ballot={{...ballot, status: "Suspended"}} 
-								/>
-							))}
-						</Box>
-					) : (
-						<Typography>No suspended ballots found.</Typography>
-					)}
-				</TabPanel>
+							}}>
+								{suspendedBallotsData.map((ballot: any) => (
+									<BallotCard key={ballot.id} ballot={ballot} />
+								))}
+							</Box>
+						) : (
+							<Typography>No suspended ballots found.</Typography>
+						)}
+					</TabPanel>
+				</Box>
 			</Paper>
 		</Box>
 	);

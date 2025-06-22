@@ -19,6 +19,7 @@ import { useAuth } from '../../auth/AuthContext';
 import API from '../../api/axios';
 import { PageHeader } from '../../components/PageHeader';
 import { UserCard } from '../../components/UserCard';
+import { contentContainerStyle, scrollableContentStyle } from '../../styles/scrollbar';
 
 interface User {
     id: number;
@@ -101,21 +102,7 @@ export const UsersList: React.FC = () => {
         fetchUsers();
     }, [currentUser?.id]);
 
-    if (loading) {
-        return (
-            <Box sx={{ display: 'flex', justifyContent: 'center', mt: 4 }}>
-                <CircularProgress />
-            </Box>
-        );
-    }
-
-    if (error) {
-        return (
-            <Box sx={{ p: 3 }}>
-                <Typography color="error">{error}</Typography>
-            </Box>
-        );
-    }    // Filter users based on selected role and status
+    // Filter users based on selected role and status
     const filteredUsers = users
         .filter(user => selectedRole === 'all' ? true : user.roles.some(role => role.name === selectedRole))
         .filter(user => {
@@ -144,38 +131,31 @@ export const UsersList: React.FC = () => {
     };
 
     return (
-        <Box sx={{ p: 3 }}>
-            <PageHeader 
-                title="Manage Users" 
-                onRefresh={handleRefresh}
-                isRefreshing={isRefreshing}
-            />
-            <Box sx={{ 
-                display: 'flex', 
-                gap: 3
-            }}>
-                {/* Left side - Users list */}
-                <Box sx={{ flex: 1 }}>
-                    {users.length === 0 ? (
-                        <Typography>No users found.</Typography>
-                    ) : (
-                        <Box sx={{ 
-                            display: 'flex',
-                            flexDirection: 'column',
-                            gap: 1,
-                            maxWidth: '100%',
-                            width: '100%'
-                        }}>
-                            {filteredUsers.map(user => (
-                                <UserCard 
-                                    key={user.id}
-                                    user={user}
-                                    options={currentUser?.id !== user.id}
-                                    onDelete={handleUserDelete}
-                                />
-                            ))}
-                        </Box>
-                    )}
+        <Box sx={contentContainerStyle}>
+            <PageHeader title="Manage Users" />
+            <Box sx={{ display: 'flex', gap: 3, height: '100%' }}>
+                {/* Main Content - User Cards */}
+                <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+                    <Box sx={scrollableContentStyle}>
+                        {loading ? (
+                            <CircularProgress />
+                        ) : error ? (
+                            <Typography color="error">{error}</Typography>
+                        ) : filteredUsers.length === 0 ? (
+                            <Typography>No users found.</Typography>
+                        ) : (
+                            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                                {filteredUsers.map(user => (
+                                    <UserCard
+                                        key={user.id}
+                                        user={user}
+                                        options={currentUser?.id !== user.id}
+                                        onDelete={handleUserDelete}
+                                    />
+                                ))}
+                            </Box>
+                        )}
+                    </Box>
                 </Box>
 
                 {/* Divider */}

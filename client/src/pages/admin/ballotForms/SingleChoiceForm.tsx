@@ -23,6 +23,7 @@ import AddIcon from "@mui/icons-material/Add";
 import axios from "../../../api/axios";
 import { MockChip } from "../../../components/MockChip";
 import API from "../../../api/axios";
+import { scrollbarStyle } from "../../../styles/scrollbar";
 
 interface Category {
 	id: number;
@@ -143,34 +144,38 @@ export const SingleChoiceForm: React.FC<Props> = ({ ballotType }) => {
 	return (
 		<Box
 			sx={{
-				height: "100%",
 				display: "flex",
 				flexDirection: "column",
 				width: "100%",
-				maxHeight: "100vh",
+				height: "100%",
+				overflow: 'hidden',
 			}}
 		>
 			<Box
 				sx={{
-					p: 3,
+					flex: 1,
 					display: "flex",
 					flexDirection: "column",
-					height: "100%",
-					gap: 3,
+					p: "20px",
+					gap: 2,
+					overflow: 'hidden',
+					minHeight: 0, // Ensure flex child doesn't exceed parent height
 				}}
 			>
 				<Box
 					sx={{
 						display: "grid",
 						gridTemplateColumns: "3fr 2fr",
-						gap: 6,
+						gap: 4,
 						width: "100%",
+						overflow: 'hidden',
 						flex: 1,
-						minHeight: 0,
+						minHeight: 0, // Ensure grid doesn't exceed flex parent
+						height:"100vh"
 					}}
 				>
 					{/* Left Column */}
-					<Stack spacing={2.5} sx={{ overflow: "auto", pt:1 }}>
+					<Stack spacing={2} sx={{ ...scrollbarStyle, overflow: 'auto', minHeight: 0, pt:2 }}>
 						<TextField
 							fullWidth
 							label="Title"
@@ -193,6 +198,7 @@ export const SingleChoiceForm: React.FC<Props> = ({ ballotType }) => {
 								}))
 							}
 						/>
+
 						<FormControl fullWidth>
 							<InputLabel>Category</InputLabel>
 							<Select
@@ -248,86 +254,101 @@ export const SingleChoiceForm: React.FC<Props> = ({ ballotType }) => {
 								}}
 							/>
 						</LocalizationProvider>
-					</Stack>{" "}
+					</Stack>
+
 					{/* Right Column */}
 					<Paper
 						elevation={0}
 						sx={{
 							bgcolor: "background.default",
-							overflow: "auto",
 							alignSelf: "start",
 							width: "100%",
-                            pt:1
+							display: 'flex',
+							flexDirection: 'column',
+							height: '25rem', // Slightly reduced to ensure it fits
 						}}
 					>
-						<Typography variant="h6" sx={{ mb: 2 }}>
-							Options
-						</Typography>
-						<Stack spacing={2}>
-							{formData.options.map((option, index) => (
-								<Box key={index} sx={{ display: "flex", gap: 1 }}>
-									<TextField
-										size="small"
-										fullWidth
-										label={`Option ${index + 1}`}
-										value={option}
-										onChange={(e) => handleOptionChange(index, e.target.value)}
-									/>
-									<IconButton
-										size="small"
-										onClick={() => removeOption(index)}
-										disabled={formData.options.length === 1}
-									>
-										<DeleteIcon />
-									</IconButton>
-								</Box>
-							))}
+						<Box sx={{ 
+							px: 2, 
+							py: 1,
+							display: 'flex',
+							alignItems: 'center',
+							justifyContent: 'space-between',
+							borderBottom: 1,
+							borderColor: 'divider'
+						}}>
+							<Typography variant="h6">
+								Options
+							</Typography>
 							<Button
 								size="small"
 								startIcon={<AddIcon />}
 								onClick={addOption}
-								sx={{ alignSelf: "flex-start" }}
 							>
 								Add Option
 							</Button>
-						</Stack>
+						</Box>
+						<Box
+							sx={{
+								...scrollbarStyle,
+								flex: 1,
+								overflowY: 'auto',
+								px: 2,
+								py: 1.5,
+							}}
+						>
+							<Stack spacing={1.5}>
+								{formData.options.map((option, index) => (
+									<Box key={index} sx={{ display: "flex", gap: 1 }}>
+										<TextField
+											size="small"
+											fullWidth
+											label={`Option ${index + 1}`}
+											value={option}
+											onChange={(e) => handleOptionChange(index, e.target.value)}
+										/>
+										<IconButton
+											size="small"
+											onClick={() => removeOption(index)}
+											disabled={formData.options.length === 1}
+											sx={{ flexShrink: 0 }}
+										>
+											<DeleteIcon />
+										</IconButton>
+									</Box>
+								))}
+							</Stack>
+						</Box>
 					</Paper>
 				</Box>
-			</Box>{" "}
+			</Box>
+
 			{/* Submit Button */}
 			<Box
 				sx={{
 					borderTop: 1,
 					borderColor: "divider",
-					pt: 2,
-					mt: "auto",
+					px: 2,
+					py: 1.5,
+					display: "flex",
+					justifyContent: "flex-end",
+					gap: 2,
+					bgcolor: "background.default",
 				}}
 			>
-				<Box
-					sx={{
-						display: "flex",
-						justifyContent: "flex-end",
-					}}
+				<Button
+					variant="contained"
+					disabled={isSubmitting}
+					onClick={handleSubmit}
 				>
-					<Button
-						variant="contained"
-						color="primary"
-						onClick={handleSubmit}
-						disabled={isSubmitting}
-					>
-						{isSubmitting ? "Creating..." : "Create Ballot"}
-					</Button>
-				</Box>
-				{formError && (
-					<Typography
-						variant="body2"
-						color="error"
-						sx={{ mt: 1, textAlign: "center" }}
-					>
-						{formError}
-					</Typography>
-				)}
+					Create Ballot
+				</Button>
 			</Box>
+			{formError && (
+				<Typography color="error" sx={{ px: 2, pb: 1 }}>
+					{formError}
+				</Typography>
+			)}
 		</Box>
 	);
 };
