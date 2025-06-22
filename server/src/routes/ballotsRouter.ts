@@ -13,7 +13,10 @@ import {
     getActiveBallotsWithVoteStatus,
     getPastBallotsWithVoteStatus,
     getVotedBallots,
-    getUserVote
+    getUserVote,
+    suspendBallot,
+    unsuspendBallot,
+    endBallotEarly
 } from '../controllers/ballotsController';
 
 const router = express.Router();
@@ -34,5 +37,8 @@ router.get('/:id/analytics', verifyToken, getBallotAnalytics);
 router.get('/:id/vote', verifyToken, getUserVote);
 router.get('/:id', verifyToken, getBallot);
 router.post('/:id/vote', verifyToken, submitVote);
+router.post('/:id/suspend', verifyToken, suspendBallot);
+router.post('/:id/unsuspend', verifyToken, unsuspendBallot);
+router.post('/:id/end', verifyToken, endBallotEarly);
 
 export default router;

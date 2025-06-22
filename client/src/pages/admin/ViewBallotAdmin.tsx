@@ -163,22 +163,27 @@ const ViewBallotAdmin: React.FC = () => {
 
 	const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
 		setActiveTab(newValue);
-	};
-
-	const handleBallotAction = async (action: "end" | "suspend") => {
+	};	const handleBallotAction = async (action: "end" | "suspend" | "unsuspend") => {
 		if (!ballot || isSubmitting) return;
 
 		try {
 			setIsSubmitting(true);
-			await API.patch(`/ballots/${ballot.id}/status`, {
-				status: action === "end" ? "ENDED" : "SUSPENDED",
-			});
+			setError(null);
 
+			// Perform the action
+			const endpoint = action === "end" ? "end" : action === "suspend" ? "suspend" : "unsuspend";
+			const response = await API.post(`/ballots/${ballot.id}/${endpoint}`);
+			
 			// Refresh ballot data
-			const response = await API.get(`/ballots/${ballot.id}`);
-			setBallot(response.data);
+			const ballotResponse = await API.get(`/ballots/${id}`);
+			setBallot(ballotResponse.data);
+
+			// Refresh analytics
+			const analyticsResponse = await API.get(`/ballots/${id}/analytics`);
+			setAnalytics(analyticsResponse.data);
 		} catch (err: any) {
 			console.error(`Error ${action}ing ballot:`, err);
+			setError(err.response?.data?.message || `Failed to ${action} ballot`);
 		} finally {
 			setIsSubmitting(false);
 		}
@@ -208,13 +213,13 @@ const ViewBallotAdmin: React.FC = () => {
 	}
 
 	return (
-		<Box sx={{ p: 3 }}>
-			<BallotHeader
+		<Box sx={{ p: 3 }}>			<BallotHeader
 				title={ballot.title}
 				status={ballot.status}
 				isAdmin={user?.id === ballot.adminId}
 				isSubmitting={isSubmitting}
 				onSuspend={() => handleBallotAction("suspend")}
+				onUnsuspend={() => handleBallotAction("unsuspend")}
 				onEndEarly={() => handleBallotAction("end")}
 			/>
 

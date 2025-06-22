@@ -19,8 +19,12 @@ interface VotingOptionsProps {
   options: VotingOption[];
 }
 
-export const VotingOptions: React.FC<VotingOptionsProps> = ({ options }) => {
+export const VotingOptions: React.FC<VotingOptionsProps> = ({ options = [] }) => {
   const theme = useTheme();
+
+  if (!options?.length) {
+    return null;
+  }
 
   return (
     <Box>
@@ -34,7 +38,7 @@ export const VotingOptions: React.FC<VotingOptionsProps> = ({ options }) => {
         }}
       >
         <BallotIcon sx={{ mr: 1 }} />
-        Voting Options
+        Voting Options ({options.length})
       </Typography>
       <Box
         sx={{
