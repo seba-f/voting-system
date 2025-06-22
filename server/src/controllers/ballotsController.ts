@@ -527,14 +527,13 @@ export const submitVote = async (req: AuthRequest, res: Response): Promise<void>
             return;
         }
 
-        // Get user's roles
+        // Get user's roles and check access
         const userRoles = await UserRoles.findAll({
             where: { userId: req.user.id },
             attributes: ['roleId']
         });
         const userRoleIds = userRoles.map(role => role.roleId);
 
-        // Get categories user has access to
         const categoryRoles = await CategoryRoles.findAll({
             where: {
                 roleId: {
@@ -564,44 +563,66 @@ export const submitVote = async (req: AuthRequest, res: Response): Promise<void>
             return;
         }
 
-        // Check if user has already voted
-        const existingVote = await Vote.findOne({
+        // For multiple choice ballots, expect an array of optionIds
+        const { optionId, optionIds } = req.body;
+        const selectedOptionIds = ballot.ballotType === 'MULTIPLE_CHOICE' ? optionIds : [optionId];
+
+        if (!selectedOptionIds || !Array.isArray(selectedOptionIds) || selectedOptionIds.length === 0) {
+            res.status(400).json({ message: 'No options selected' });
+            return;
+        }
+
+        // Check if user has already voted on this ballot
+        const existingVotes = await Vote.findAll({
             where: {
                 userId: req.user.id,
                 ballotId
             }
         });
 
-        if (existingVote) {
+        if (existingVotes.length > 0 && ballot.ballotType !== 'MULTIPLE_CHOICE') {
             res.status(400).json({ message: 'You have already voted on this ballot' });
             return;
         }
 
-        // Validate vote based on ballot type
-        const { optionId } = req.body;
+        // For multiple choice, clean up existing votes if any
+        if (ballot.ballotType === 'MULTIPLE_CHOICE' && existingVotes.length > 0) {
+            await Vote.destroy({
+                where: {
+                    userId: req.user.id,
+                    ballotId
+                }
+            });
+        }
 
-        // Check if the option exists and belongs to this ballot
-        const option = await VotingOption.findOne({
+        // Verify all options exist and belong to this ballot
+        const options = await VotingOption.findAll({
             where: {
-                id: optionId,
+                id: {
+                    [Op.in]: selectedOptionIds
+                },
                 ballotId
             }
         });
 
-        if (!option) {
-            res.status(400).json({ message: 'Invalid voting option' });
+        if (options.length !== selectedOptionIds.length) {
+            res.status(400).json({ message: 'One or more invalid voting options' });
             return;
         }
 
-        // Create the vote
-        await Vote.create({
-            userId: req.user.id,
-            ballotId,
-            optionId,
-            timestamp: new Date()
-        });
+        // Create votes
+        const votes = await Promise.all(selectedOptionIds.map(optionId =>
+            Vote.create({
+                userId: req.user.id,
+                ballotId,
+                optionId,
+                timestamp: new Date()
+            })
+        ));
 
-        res.status(201).json({ message: 'Vote submitted successfully' });
+        // Format response based on ballot type
+        const response = ballot.ballotType === 'MULTIPLE_CHOICE' ? votes : votes[0];
+        res.status(201).json(response);
     } catch (error: any) {
         console.error('Error submitting vote:', error);
         res.status(500).json({ message: 'Error submitting vote', error: error.message });
@@ -776,20 +797,35 @@ export const getUserVote = async (req: AuthRequest, res: Response): Promise<void
             return;
         }
 
-        // Get user's vote
-        const vote = await Vote.findOne({
+        // First get the ballot to check its type
+        const ballot = await Ballot.findByPk(ballotId);
+        if (!ballot) {
+            res.status(404).json({ message: 'Ballot not found' });
+            return;
+        }
+
+        // Get all user's votes for this ballot
+        const votes = await Vote.findAll({
             where: {
                 userId: req.user.id,
                 ballotId
-            }
+            },
+            include: [{
+                model: VotingOption,
+                attributes: ['id', 'title']
+            }]
         });
 
-        if (!vote) {
+        if (votes.length === 0) {
             res.status(404).json({ message: 'Vote not found' });
             return;
         }
 
-        res.status(200).json(vote);
+        // For multiple choice ballots, return all votes
+        // For other ballot types, return just the first vote
+        res.status(200).json(
+            ballot.ballotType === 'MULTIPLE_CHOICE' ? votes : votes[0]
+        );
     } catch (error: any) {
         console.error('Error fetching user vote:', error);
         res.status(500).json({ message: 'Error fetching user vote', error: error.message });
@@ -923,17 +959,16 @@ export const getBallotAnalytics = async (req: AuthRequest, res: Response): Promi
         const votes = await Vote.findAll({
             where: { ballotId: id },
             attributes: [
+                'userId',
                 'optionId',
                 'timestamp'
             ]
         });
 
-        // Count total votes
-        const totalVotes = votes.length;
-
         // For ballots with no votes, return minimal analytics
-        if (totalVotes === 0) {
+        if (votes.length === 0) {
             const analytics = {
+                totalVoters: 0,
                 totalVotes: 0,
                 eligibleUsers,
                 participationRate: 0,
@@ -951,6 +986,9 @@ export const getBallotAnalytics = async (req: AuthRequest, res: Response): Promi
             return;
         }
 
+        // Count unique voters
+        const uniqueVoters = new Set(votes.map(vote => vote.userId)).size;
+
         // Calculate choice distribution (for single/multiple choice ballots)
         let choiceDistribution = {};
         if (ballot.ballotType !== 'TEXT_INPUT' && ballot.ballotType !== 'RANKED_CHOICE') {
@@ -960,19 +998,31 @@ export const getBallotAnalytics = async (req: AuthRequest, res: Response): Promi
             }, {});
         }
 
-        // Calculate voting frequency per hour
-        const voteTimestamps = votes.map(vote => new Date(vote.timestamp));
-        const hourlyDistribution = voteTimestamps.reduce((acc, timestamp) => {
+        // Calculate voting frequency per hour (using unique voters per hour for multiple choice)
+        const hourlyDistribution = votes.reduce((acc, vote) => {
+            const timestamp = new Date(vote.timestamp);
             const hour = timestamp.getHours();
-            acc[hour] = (acc[hour] || 0) + 1;
+            
+            // For multiple choice, ensure we only count each user once per hour
+            if (ballot.ballotType === 'MULTIPLE_CHOICE') {
+                // Create a unique key for user and hour
+                const userHourKey = `${vote.userId}-${hour}`;
+                if (!acc.userTracking[userHourKey]) {
+                    acc.userTracking[userHourKey] = true;
+                    acc.distribution[hour] = (acc.distribution[hour] || 0) + 1;
+                }
+            } else {
+                acc.distribution[hour] = (acc.distribution[hour] || 0) + 1;
+            }
             return acc;
-        }, {});
+        }, { distribution: {}, userTracking: {} }).distribution;
 
         // Format the response with full analytics
         const analytics = {
-            totalVotes,
+            totalVoters: uniqueVoters,
+            totalVotes: votes.length,
             eligibleUsers,
-            participationRate: totalVotes / eligibleUsers,
+            participationRate: uniqueVoters / eligibleUsers,
             choiceDistribution: ballot.VotingOptions.map(option => ({
                 optionId: option.id,
                 title: option.title,
@@ -991,6 +1041,47 @@ export const getBallotAnalytics = async (req: AuthRequest, res: Response): Promi
             message: 'Error fetching ballot analytics', 
             error: error.message 
         });
+    }
+};
+
+export const getVote = async (req: AuthRequest, res: Response): Promise<void> => {
+    try {
+        if (!req.user) {
+            res.status(401).json({ message: 'User not authenticated' });
+            return;
+        }
+
+        const ballotId = parseInt(req.params.id);
+        if (isNaN(ballotId)) {
+            res.status(400).json({ message: 'Invalid ballot ID' });
+            return;
+        }
+
+        // Get ballot type to determine response format
+        const ballot = await Ballot.findByPk(ballotId);
+        if (!ballot) {
+            res.status(404).json({ message: 'Ballot not found' });
+            return;
+        }
+
+        // Get user's vote(s)
+        const votes = await Vote.findAll({
+            where: {
+                userId: req.user.id,
+                ballotId
+            }
+        });
+
+        if (votes.length === 0) {
+            res.status(404).json({ message: 'No vote found' });
+            return;
+        }
+
+        // For multiple choice, return all votes. For others, return just the first vote
+        res.json(ballot.ballotType === 'MULTIPLE_CHOICE' ? votes : votes[0]);
+    } catch (error: any) {
+        console.error('Error fetching vote:', error);
+        res.status(500).json({ message: 'Error fetching vote', error: error.message });
     }
 };
 

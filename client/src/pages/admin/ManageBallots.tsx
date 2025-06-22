@@ -126,7 +126,7 @@ export const ManageBallots = () => {
 					value={activeTab}
 					onChange={handleTabChange}
 					aria-label="ballot tabs"
-					sx={{ borderBottom: 1, borderColor: "divider" }}
+					sx={{ borderBottom: 1, borderColor: "divider", mb:1 }}
 				>
 					<Tab label="Active Ballots" {...a11yProps(0)} />
 					<Tab label="Past Ballots" {...a11yProps(1)} />

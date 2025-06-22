@@ -6,13 +6,13 @@ export const scrollbarStyle: SxProps = {
         height: "8px",
     },
     "&::-webkit-scrollbar-track": {
-        backgroundColor: "rgba(0, 0, 0, 0.05)",
+        backgroundColor: "action.hover",
     },
     "&::-webkit-scrollbar-thumb": {
-        backgroundColor: "rgba(0, 0, 0, 0.2)",
+        backgroundColor: "primary.light",
         borderRadius: "8px",
         "&:hover": {
-            backgroundColor: "rgba(0, 0, 0, 0.3)",
+            backgroundColor: "primary.main",
         }
     },
     overflowY: "auto",

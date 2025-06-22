@@ -66,6 +66,14 @@ export const SingleChoiceForm: React.FC<Props> = ({ ballotType }) => {
 				setIsLoading(true);
 				const response = await API.get("/categories");
 				setCategories(response.data.categories || []);
+
+				// For YES_NO ballots, initialize with predefined options
+				if (ballotType === "YES_NO") {
+					setFormData(prev => ({
+						...prev,
+						options: ["Yes", "No"]
+					}));
+				}
 			} catch (error) {
 				console.error("Error fetching categories:", error);
 				setCategories([]);
@@ -74,7 +82,7 @@ export const SingleChoiceForm: React.FC<Props> = ({ ballotType }) => {
 			}
 		};
 		fetchCategories();
-	}, []);
+	}, [ballotType]);
 
 	const handleCategoryChange = (categoryId: number) => {
 		setFormData((prev) => ({ ...prev, categoryId }));
@@ -276,17 +284,18 @@ export const SingleChoiceForm: React.FC<Props> = ({ ballotType }) => {
 							justifyContent: 'space-between',
 							borderBottom: 1,
 							borderColor: 'divider'
-						}}>
-							<Typography variant="h6">
+						}}>							<Typography variant="h6">
 								Options
 							</Typography>
-							<Button
-								size="small"
-								startIcon={<AddIcon />}
-								onClick={addOption}
-							>
-								Add Option
-							</Button>
+							{ballotType !== "YES_NO" && (
+								<Button
+									size="small"
+									startIcon={<AddIcon />}
+									onClick={addOption}
+								>
+									Add Option
+								</Button>
+							)}
 						</Box>
 						<Box
 							sx={{
@@ -306,15 +315,18 @@ export const SingleChoiceForm: React.FC<Props> = ({ ballotType }) => {
 											label={`Option ${index + 1}`}
 											value={option}
 											onChange={(e) => handleOptionChange(index, e.target.value)}
+											disabled={ballotType === "YES_NO"}
 										/>
-										<IconButton
-											size="small"
-											onClick={() => removeOption(index)}
-											disabled={formData.options.length === 1}
-											sx={{ flexShrink: 0 }}
-										>
-											<DeleteIcon />
-										</IconButton>
+										{ballotType !== "YES_NO" && formData.options.length > 1 && (
+											<IconButton
+												size="small"
+												onClick={() => removeOption(index)}
+												disabled={formData.options.length === 1}
+												sx={{ flexShrink: 0 }}
+											>
+												<DeleteIcon />
+											</IconButton>
+										)}
 									</Box>
 								))}
 							</Stack>

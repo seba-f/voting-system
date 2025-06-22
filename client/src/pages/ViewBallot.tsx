@@ -4,6 +4,8 @@ import { Box, Typography, Paper, CircularProgress, Alert } from '@mui/material';
 import { PageHeader } from '../components/PageHeader';
 import API from '../api/axios';
 import { SingleChoiceVoteForm } from './voteForms/SingleChoiceVoteForm';
+import { YesNoVoteForm } from './voteForms/YesNoVoteForm';
+import { MultipleChoiceVoteForm } from './voteForms/MultipleChoiceVoteForm';
 import { BallotResults } from '../components/BallotResults';
 
 interface Option {
@@ -26,6 +28,7 @@ const ViewBallot: React.FC = () => {
     const navigate = useNavigate();
     const [ballot, setBallot] = useState<Ballot | null>(null);
     const [userVote, setUserVote] = useState<any | null>(null);
+    const [userVotes, setUserVotes] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const searchParams = new URLSearchParams(window.location.search);
@@ -51,7 +54,15 @@ const ViewBallot: React.FC = () => {
                     console.log('[ViewBallot] Fetching user vote...');
                     const voteResponse = await API.get(`/ballots/${id}/vote`);
                     console.log('[ViewBallot] Received user vote:', voteResponse.data);
-                    setUserVote(voteResponse.data);
+                    
+                    // Handle both single and multiple votes
+                    if (Array.isArray(voteResponse.data)) {
+                        setUserVotes(voteResponse.data);
+                        setUserVote(voteResponse.data[0]); // For backward compatibility
+                    } else {
+                        setUserVote(voteResponse.data);
+                        setUserVotes(voteResponse.data ? [voteResponse.data] : []);
+                    }
                 } catch (voteErr: any) {
                     console.error('[ViewBallot] Error fetching user vote:', {
                         error: voteErr,
@@ -88,7 +99,13 @@ const ViewBallot: React.FC = () => {
             sessionStorage.removeItem('ballots-user-' + response.data.userId);
             sessionStorage.removeItem('ballots-user-' + response.data.userId + '-timestamp');
             // Update local state before navigating
-            setUserVote(response.data);
+            if (Array.isArray(response.data)) {
+                setUserVotes(response.data);
+                setUserVote(response.data[0]); // For backward compatibility
+            } else {
+                setUserVote(response.data);
+                setUserVotes([response.data]);
+            }
             navigate('/dashboard', { state: { voteJustSubmitted: true } });
         } catch (err: any) {
             console.error('[ViewBallot] Error submitting vote:', {
@@ -128,14 +145,14 @@ const ViewBallot: React.FC = () => {
                 </Alert>
             </Box>
         );
-    }
-
-    const isReadOnly = !!userVote || ballot.status === 'Ended' || ballot.status === 'Suspended';
+    }    const hasVoted = ballot.type === 'MULTIPLE_CHOICE' ? userVotes.length > 0 : !!userVote;
+    const isReadOnly = hasVoted || ballot.status === 'Ended' || ballot.status === 'Suspended';
     console.log('[ViewBallot] Rendering form with state:', {
         ballotId: ballot.id,
-        hasUserVote: !!userVote,
+        hasVoted,
         isReadOnly,
-        ballotStatus: ballot.status
+        ballotStatus: ballot.status,
+        userVotes: ballot.type === 'MULTIPLE_CHOICE' ? userVotes : undefined
     });
 
     const statusAlert = isReadOnly ? (
@@ -149,8 +166,7 @@ const ViewBallot: React.FC = () => {
                     padding: '4px 0',
                 }
             }}
-        >
-            {userVote 
+        >            {hasVoted 
                 ? "You've already voted on this ballot" 
                 : "This ballot is no longer active"
             }
@@ -170,6 +186,22 @@ const ViewBallot: React.FC = () => {
                     onSubmit={!isReadOnly ? handleVoteSubmit : undefined}
                     readOnly={isReadOnly}
                     selectedOptionId={userVote?.optionId}
+                />
+            )}
+            {ballot.type === 'YES_NO' && (
+                <YesNoVoteForm
+                    ballot={ballot}
+                    onSubmit={!isReadOnly ? handleVoteSubmit : undefined}
+                    readOnly={isReadOnly}
+                    selectedOptionId={userVote?.optionId}
+                />
+            )}
+            {ballot.type === 'MULTIPLE_CHOICE' && (
+                <MultipleChoiceVoteForm
+                    ballot={ballot}
+                    onSubmit={!isReadOnly ? handleVoteSubmit : undefined}
+                    readOnly={isReadOnly}
+                    selectedOptionIds={userVotes.map(vote => vote.optionId)}
                 />
             )}
             {/* Add similar blocks for other ballot types */}
