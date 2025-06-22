@@ -255,8 +255,7 @@ const ViewBallotAdmin: React.FC = () => {
 								flexDirection: { xs: "column", md: "row" },
 								gap: 3,
 							}}
-						>
-							<Box sx={{ flex: 1 }}>
+						>							<Box sx={{ flex: 1 }}>
 								<BallotDetails
 									description={ballot.description}
 									type={ballot.type}
@@ -265,9 +264,11 @@ const ViewBallotAdmin: React.FC = () => {
 								/>
 							</Box>
 
-							<Box sx={{ flex: 1 }}>
-								<VotingOptions options={ballot.options} />
-							</Box>
+							{ballot.type !== 'TEXT_INPUT' && (
+								<Box sx={{ flex: 1 }}>
+									<VotingOptions options={ballot.options} />
+								</Box>
+							)}
 						</Box>
 					)}
 				</Box>

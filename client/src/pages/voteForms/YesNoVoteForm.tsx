@@ -1,11 +1,16 @@
 import React from 'react';
 import { SingleChoiceVoteForm } from './SingleChoiceVoteForm';
 
+import { BallotType } from '../../types/ballot';
+
 interface YesNoVoteFormProps {
     ballot: {
         id: number;
         title: string;
         description: string;
+        type: BallotType;
+        endDate: string;
+        status: string;
         options: Array<{
             id: number;
             title: string;

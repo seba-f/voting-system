@@ -6,22 +6,10 @@ import API from '../api/axios';
 import { SingleChoiceVoteForm } from './voteForms/SingleChoiceVoteForm';
 import { YesNoVoteForm } from './voteForms/YesNoVoteForm';
 import { MultipleChoiceVoteForm } from './voteForms/MultipleChoiceVoteForm';
+import { TextInputVoteForm } from './voteForms/TextInputVoteForm';
 import { BallotResults } from '../components/BallotResults';
 
-interface Option {
-    id: number;
-    title: string;
-}
-
-interface Ballot {
-    id: number;
-    title: string;
-    description: string;
-    type: string;
-    endDate: string;
-    status: string;
-    options: Option[];
-}
+import { Ballot, BallotType } from '../types/ballot';
 
 const ViewBallot: React.FC = () => {
     const { id } = useParams();
@@ -173,6 +161,55 @@ const ViewBallot: React.FC = () => {
         </Alert>
     ) : null;
 
+    const renderVoteForm = () => {
+        if (!ballot) return null;
+
+        const isExpired = new Date(ballot.endDate) < new Date();
+        const isReadOnly = isExpired || userVote !== null;
+
+        switch (ballot.type) {
+            case 'SINGLE_CHOICE':
+                return (
+                    <SingleChoiceVoteForm
+                        ballot={ballot}
+                        onSubmit={!isReadOnly ? handleVoteSubmit : undefined}
+                        readOnly={isReadOnly}
+                        selectedOptionId={userVote?.optionId}
+                    />
+                );
+            case 'YES_NO':
+                return (
+                    <YesNoVoteForm
+                        ballot={ballot}
+                        onSubmit={!isReadOnly ? handleVoteSubmit : undefined}
+                        readOnly={isReadOnly}
+                        selectedOptionId={userVote?.optionId}
+                    />
+                );
+            case 'MULTIPLE_CHOICE':
+                return (
+                    <MultipleChoiceVoteForm
+                        ballot={ballot}
+                        onSubmit={!isReadOnly ? handleVoteSubmit : undefined}
+                        readOnly={isReadOnly}
+                        selectedOptionIds={userVotes.map(v => v.optionId)}
+                    />
+                );
+            case 'TEXT_INPUT':
+                return (
+                    <TextInputVoteForm
+                        ballot={ballot}
+                        onSubmit={!isReadOnly ? handleVoteSubmit : undefined}
+                        readOnly={isReadOnly}
+                        selectedOptionId={userVote?.optionId}
+                        existingResponse={userVote?.textResponse}
+                    />
+                );
+            default:
+                return <Typography>Unsupported ballot type</Typography>;
+        }
+    };
+
     return (
         <Box sx={{ p: 3 }}>
             <PageHeader 
@@ -180,30 +217,7 @@ const ViewBallot: React.FC = () => {
                 statusAlert={statusAlert}
             />
             
-            {ballot.type === 'SINGLE_CHOICE' && (
-                <SingleChoiceVoteForm
-                    ballot={ballot}
-                    onSubmit={!isReadOnly ? handleVoteSubmit : undefined}
-                    readOnly={isReadOnly}
-                    selectedOptionId={userVote?.optionId}
-                />
-            )}
-            {ballot.type === 'YES_NO' && (
-                <YesNoVoteForm
-                    ballot={ballot}
-                    onSubmit={!isReadOnly ? handleVoteSubmit : undefined}
-                    readOnly={isReadOnly}
-                    selectedOptionId={userVote?.optionId}
-                />
-            )}
-            {ballot.type === 'MULTIPLE_CHOICE' && (
-                <MultipleChoiceVoteForm
-                    ballot={ballot}
-                    onSubmit={!isReadOnly ? handleVoteSubmit : undefined}
-                    readOnly={isReadOnly}
-                    selectedOptionIds={userVotes.map(vote => vote.optionId)}
-                />
-            )}
+            {renderVoteForm()}
             {/* Add similar blocks for other ballot types */}
         </Box>
     );

@@ -58,18 +58,25 @@ export const createBallot = async (req: AuthRequest, res: Response): Promise<voi
             adminId: req.user.id,
             isSuspended: false,
             suspensionDuration: 0
-        });
-
-        // Create the voting options
-        const optionPromises = votingOptions.map(option => {
-            return VotingOption.create({
+        });        // Handle voting options based on ballot type
+        if (ballotType === 'TEXT_INPUT') {
+            // For text input ballots, create a single option
+            await VotingOption.create({
                 ballotId: ballot.id,
-                title: option.text,
-                isText: false  // Since these are predefined options
+                title: 'Text Response',
+                isText: true
             });
-        });
-
-        await Promise.all(optionPromises);
+        } else {
+            // For other ballot types, create the provided options
+            const optionPromises = votingOptions.map(option => {
+                return VotingOption.create({
+                    ballotId: ballot.id,
+                    title: option.text || option.title,  // Support both formats
+                    isText: false
+                });
+            });
+            await Promise.all(optionPromises);
+        }
 
         res.status(201).json({ message: 'Ballot created successfully', ballot });
     } catch (error: any) {
@@ -976,20 +983,30 @@ export const getBallotAnalytics = async (req: AuthRequest, res: Response): Promi
                     optionId: option.id,
                     title: option.title,
                     votes: 0
-                })),
-                hourlyDistribution: Array.from({ length: 24 }, (_, hour) => ({
+                })),                hourlyDistribution: Array.from({ length: 24 }, (_, hour) => ({
                     hour,
                     votes: 0
-                }))
+                })),
+                ...(ballot.ballotType === 'TEXT_INPUT' ? { textResponses: [] } : {})
             };
             res.json(analytics);
             return;
         }
 
         // Count unique voters
-        const uniqueVoters = new Set(votes.map(vote => vote.userId)).size;
+        const uniqueVoters = new Set(votes.map(vote => vote.userId)).size;        // For text input ballots, get text responses
+        let textResponses = [];
+        if (ballot.ballotType === 'TEXT_INPUT') {
+            const fullVotes = await Vote.findAll({
+                where: { ballotId: id },
+                attributes: ['textResponse']
+            });
+            textResponses = fullVotes.filter(v => v.textResponse).map(v => ({
+                response: v.textResponse
+            }));
+        }
 
-        // Calculate choice distribution (for single/multiple choice ballots)
+        // Calculate choice distribution (for non-text input ballots)
         let choiceDistribution = {};
         if (ballot.ballotType !== 'TEXT_INPUT' && ballot.ballotType !== 'RANKED_CHOICE') {
             choiceDistribution = votes.reduce((acc, vote) => {
@@ -1015,24 +1032,32 @@ export const getBallotAnalytics = async (req: AuthRequest, res: Response): Promi
                 acc.distribution[hour] = (acc.distribution[hour] || 0) + 1;
             }
             return acc;
-        }, { distribution: {}, userTracking: {} }).distribution;
-
-        // Format the response with full analytics
-        const analytics = {
+        }, { distribution: {}, userTracking: {} }).distribution;        // Format the response with full analytics
+        const baseAnalytics = {
             totalVoters: uniqueVoters,
             totalVotes: votes.length,
             eligibleUsers,
             participationRate: uniqueVoters / eligibleUsers,
-            choiceDistribution: ballot.VotingOptions.map(option => ({
-                optionId: option.id,
-                title: option.title,
-                votes: choiceDistribution[option.id] || 0
-            })),
             hourlyDistribution: Array.from({ length: 24 }, (_, hour) => ({
                 hour,
                 votes: hourlyDistribution[hour] || 0
             }))
         };
+
+        // Add type-specific data
+        const analytics = ballot.ballotType === 'TEXT_INPUT'
+            ? {
+                ...baseAnalytics,
+                textResponses
+            }
+            : {
+                ...baseAnalytics,
+                choiceDistribution: ballot.VotingOptions.map(option => ({
+                    optionId: option.id,
+                    title: option.title,
+                    votes: choiceDistribution[option.id] || 0
+                }))
+            }
 
         res.json(analytics);
     } catch (error: any) {

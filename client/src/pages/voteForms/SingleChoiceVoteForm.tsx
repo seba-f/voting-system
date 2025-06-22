@@ -12,17 +12,7 @@ import {
 } from '@mui/material';
 import { scrollbarStyle } from '../../styles/scrollbar';
 
-interface Option {
-    id: number;
-    title: string;
-}
-
-interface Ballot {
-    id: number;
-    title: string;
-    description: string;
-    options: Option[];
-}
+import { Ballot, Option } from '../../types/ballot';
 
 interface SingleChoiceVoteFormProps {
     ballot: Ballot;

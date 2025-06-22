@@ -125,15 +125,19 @@ export const BallotAnalytics: React.FC<BallotAnalyticsProps> = ({
 
   return (
     <Fade in={!analyticsLoading}>
-      <Box
-        sx={{
+      <Box        sx={{
           display: "grid",
           gap: 3,
-          gridTemplateColumns: {
-            xs: "1fr",
-            sm: "200px 1fr",
-            lg: "200px 1fr 1fr",
-          },
+          gridTemplateColumns: ballotType === "TEXT_INPUT" 
+            ? {
+                xs: "1fr",
+                sm: "200px 1fr",
+              }
+            : {
+                xs: "1fr",
+                sm: "200px 1fr",
+                lg: "200px 1fr 1fr",
+              },
         }}
       >
         <ParticipationCard
@@ -159,9 +163,7 @@ export const BallotAnalytics: React.FC<BallotAnalyticsProps> = ({
               </Card>
             )
           )
-        )}
-
-        <Card elevation={2}>
+        )}        <Card elevation={2} sx={{ gridColumn: ballotType === "TEXT_INPUT" ? "2" : "auto" }}>
           <CardContent>
             <Typography variant="h6" gutterBottom color="primary" sx={{ mb: 2 }}>
               Voting Activity
