@@ -1,6 +1,7 @@
 import React from 'react';
 import { Box, Paper, Typography } from '@mui/material';
 import { ParticipationCard } from './ballot/ParticipationCard';
+import { LinearChoiceDistributionCard } from './ballot/LinearChoiceDistributionCard';
 import { Ballot, BallotType } from '../types/ballot';
 
 interface AnalyticsData {
@@ -55,9 +56,17 @@ export const BallotResults: React.FC<BallotResultsProps> = ({ ballot, analytics 
                 {/* Choice distribution - hide for text input */}
                 {ballot.type !== BallotType.TEXT_INPUT && (
                     <Box sx={{ flex: 1 }}>
-                        <Typography variant="body1" color="text.secondary">
-                            Choice distribution visualization coming soon...
-                        </Typography>
+                        {ballot.type === BallotType.LINEAR_CHOICE ? (
+                            <LinearChoiceDistributionCard
+                                options={ballot.options}
+                                optionCounts={analytics.optionCounts || {}}
+                                totalVotes={analytics.totalVotes}
+                            />
+                        ) : (
+                            <Typography variant="body1" color="text.secondary">
+                                Choice distribution visualization coming soon...
+                            </Typography>
+                        )}
                     </Box>
                 )}
 

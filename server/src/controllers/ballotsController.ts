@@ -66,6 +66,17 @@ export const createBallot = async (req: AuthRequest, res: Response): Promise<voi
                 title: 'Text Response',
                 isText: true
             });
+        } else if (ballotType === 'LINEAR_CHOICE') {
+            // For linear choice ballots, create an option for each step value
+            // Each option's title is in the format "value,label" for the endpoints
+            const optionPromises = req.body.options.map(option => {
+                return VotingOption.create({
+                    ballotId: ballot.id,
+                    title: option.title,  // Already formatted as "value,label" or just "value"
+                    isText: false
+                });
+            });
+            await Promise.all(optionPromises);
         } else {
             // For other ballot types, create the provided options
             const optionPromises = votingOptions.map(option => {
@@ -568,10 +579,9 @@ export const submitVote = async (req: AuthRequest, res: Response): Promise<void>
         if (!ballot) {
             res.status(404).json({ message: 'Ballot not found, expired, or access denied' });
             return;
-        }
-
-        // For multiple choice ballots, expect an array of optionIds
-        const { optionId, optionIds } = req.body;
+        }        // For multiple choice ballots, expect an array of optionIds
+        // For text input ballots, expect textResponse
+        const { optionId, optionIds, textResponse } = req.body;
         const selectedOptionIds = ballot.ballotType === 'MULTIPLE_CHOICE' ? optionIds : [optionId];
 
         if (!selectedOptionIds || !Array.isArray(selectedOptionIds) || selectedOptionIds.length === 0) {
@@ -615,17 +625,28 @@ export const submitVote = async (req: AuthRequest, res: Response): Promise<void>
         if (options.length !== selectedOptionIds.length) {
             res.status(400).json({ message: 'One or more invalid voting options' });
             return;
-        }
-
-        // Create votes
-        const votes = await Promise.all(selectedOptionIds.map(optionId =>
-            Vote.create({
+        }        // Create votes
+        let votes;
+        if (ballot.ballotType === 'TEXT_INPUT') {
+            // For text input, create a single vote with the text response
+            votes = [await Vote.create({
                 userId: req.user.id,
                 ballotId,
-                optionId,
+                optionId: selectedOptionIds[0],
+                textResponse: textResponse,
                 timestamp: new Date()
-            })
-        ));
+            })];
+        } else {
+            // For other ballot types, create votes without text response
+            votes = await Promise.all(selectedOptionIds.map(optionId =>
+                Vote.create({
+                    userId: req.user.id,
+                    ballotId,
+                    optionId,
+                    timestamp: new Date()
+                })
+            ));
+        }
 
         // Format response based on ballot type
         const response = ballot.ballotType === 'MULTIPLE_CHOICE' ? votes : votes[0];

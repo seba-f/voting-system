@@ -7,6 +7,7 @@ import { SingleChoiceVoteForm } from './voteForms/SingleChoiceVoteForm';
 import { YesNoVoteForm } from './voteForms/YesNoVoteForm';
 import { MultipleChoiceVoteForm } from './voteForms/MultipleChoiceVoteForm';
 import { TextInputVoteForm } from './voteForms/TextInputVoteForm';
+import { LinearChoiceVoteForm } from './voteForms/LinearChoiceVoteForm';
 import { BallotResults } from '../components/BallotResults';
 
 import { Ballot, BallotType } from '../types/ballot';
@@ -203,6 +204,14 @@ const ViewBallot: React.FC = () => {
                         readOnly={isReadOnly}
                         selectedOptionId={userVote?.optionId}
                         existingResponse={userVote?.textResponse}
+                    />                );
+            case 'LINEAR_CHOICE':
+                return (
+                    <LinearChoiceVoteForm
+                        ballot={ballot}
+                        onSubmit={!isReadOnly ? handleVoteSubmit : undefined}
+                        readOnly={isReadOnly}
+                        selectedOptionId={userVote?.optionId}
                     />
                 );
             default:
