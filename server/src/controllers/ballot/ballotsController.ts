@@ -9,6 +9,7 @@ import { Op, FindOptions } from 'sequelize';
 import { formatBallotResponse, UserRoleWithRole } from './ballotHelpers';
 import Vote from '../../models/entities/voting/voteModel';
 
+// create new ballot with options, roles, and category assignments
 export const createBallot = async (req: AuthRequest, res: Response): Promise<void> => {
     try {
         const { title, description, categoryId, limitDate, votingOptions, ballotType } = req.body;

@@ -234,6 +234,7 @@ const EditCategoryDialog: React.FC<EditCategoryDialogProps> = ({
     );
 };
 
+// category display card with role assignments and management options
 export const CategoryCard: React.FC<CategoryCardProps> = ({ category, onDelete, onUpdate }) => {
     const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
     const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);

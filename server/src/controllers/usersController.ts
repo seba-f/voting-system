@@ -6,6 +6,7 @@ import bcrypt from 'bcrypt';
  * Get all users with their roles
  * Excludes sensitive information like passwords
  */
+// retrieve all users with their assigned roles, excluding sensitive data
 export const getAllUsers = async (req: Request, res: Response): Promise<void> => {
     try {
         const users = await User.findAll({

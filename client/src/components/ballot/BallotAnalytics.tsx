@@ -66,6 +66,7 @@ interface BallotAnalyticsProps {
   options?: BallotOption[];
 }
 
+// comprehensive ballot analytics dashboard with charts and statistics
 export const BallotAnalytics = ({
   analytics,
   analyticsLoading,

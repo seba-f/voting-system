@@ -31,6 +31,7 @@ interface BallotResponse {
     unvoted: Ballot[];
 }
 
+// user dashboard showing active ballots and recent activity
 export const Dashboard: React.FC = () => {
     const { user, isAdmin } = useAuth();
     const location = useLocation();

@@ -31,6 +31,7 @@ interface NavbarProps {
 const DRAWER_WIDTH = 240;
 const DRAWER_WIDTH_MINIMAL = 64;
 
+// main navigation sidebar with responsive design and role-based menu items
 export const Navbar: React.FC<NavbarProps> = ({
 	onThemeToggle,
 	isDarkMode,

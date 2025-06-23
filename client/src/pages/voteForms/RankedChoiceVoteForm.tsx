@@ -36,6 +36,7 @@ const DragItem = styled(ListItem)(({ theme }) => ({
     },
 }));
 
+// drag-and-drop ranked choice voting form with preference ordering
 export const RankedChoiceVoteForm: React.FC<RankedChoiceVoteFormProps> = ({
     ballot,
     onSubmit,

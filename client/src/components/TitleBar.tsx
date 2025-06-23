@@ -10,6 +10,7 @@ import logoCheck from '../assets/logo_check.svg';
 import { useAuth } from '../auth/AuthContext';
 import API from '../api/axios';
 
+// custom titlebar component with navigation controls and window management buttons
 const TitleBar: React.FC = () => {
     const theme = useTheme();
     const { user } = useAuth();

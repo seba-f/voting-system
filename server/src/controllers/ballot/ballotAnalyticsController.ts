@@ -7,6 +7,7 @@ import CategoryRoles from '../../models/entities/intermediary/categoryRolesModel
 import UserRoles from '../../models/entities/intermediary/userRolesModel';
 import { Op } from 'sequelize';
 
+// generate comprehensive analytics and statistics for a ballot
 export const getBallotAnalytics = async (req: AuthRequest, res: Response): Promise<void> => {
     try {
         if (!req.user) {

@@ -31,6 +31,7 @@ interface User {
 }
 
 
+// admin interface for managing users and their roles
 export const UsersList: React.FC = () => {
     const navigate = useNavigate();
     const { user: currentUser } = useAuth();

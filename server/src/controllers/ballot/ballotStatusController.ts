@@ -8,6 +8,7 @@ import UserRoles from '../../models/entities/intermediary/userRolesModel';
 import { Op } from 'sequelize';
 import { formatBallotResponse } from './ballotHelpers';
 
+// retrieve active ballots with user's voting status and permissions
 export const getActiveBallotsWithVoteStatus = async (req: AuthRequest, res: Response): Promise<void> => {
     try {
         if (!req.user) {

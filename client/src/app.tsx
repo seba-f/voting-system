@@ -28,6 +28,7 @@ interface AppLayoutProps {
 	onThemeToggle: () => void;
 }
 
+// main application layout with navigation and theme controls
 const AppLayout: React.FC<AppLayoutProps> = ({ isDarkMode, onThemeToggle }) => {
     const theme = useTheme();
     return (        <Box sx={{ display: "flex", flexDirection: "column", height: "100vh" }}>
@@ -56,6 +57,7 @@ const AppLayout: React.FC<AppLayoutProps> = ({ isDarkMode, onThemeToggle }) => {
     );
 };
 
+// root application component with theme and routing setup
 const App: React.FC = () => {
 	const [isDarkMode, setIsDarkMode] = useState(false);
 

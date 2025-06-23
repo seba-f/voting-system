@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import { Session } from '../models/entities';
 
+// update user session activity status for tracking online presence
 export const updateSessionActiveStatus = async (req: Request, res: Response): Promise<void> => {
     try {
         const { isActive } = req.body;

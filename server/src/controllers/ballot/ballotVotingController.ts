@@ -8,6 +8,7 @@ import CategoryRoles from '../../models/entities/intermediary/categoryRolesModel
 import { Op } from 'sequelize';
 import { formatBallotResponse } from './ballotHelpers';
 
+// process and validate user's vote submission for a ballot
 export const submitVote = async (req: AuthRequest, res: Response): Promise<void> => {
     try {
         if (!req.user) {

@@ -4,6 +4,7 @@ import { Role } from '../models/entities';
 /**
  * Get all roles
  */
+// get all available user roles in the system
 export const getAllRoles = async (req: Request, res: Response): Promise<void> => {
     try {
         const roles = await Role.findAll({

@@ -48,6 +48,7 @@ interface Role {
     name: string;
 }
 
+// admin interface for managing ballot categories and permissions
 export const CategoriesList: React.FC = () => {
     const theme = useTheme();
     const { showAlert } = useAlert();

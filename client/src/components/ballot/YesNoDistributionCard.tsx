@@ -18,6 +18,7 @@ interface YesNoDistributionCardProps {
   distribution: ChoiceDistribution[];
 }
 
+// yes/no vote distribution visualization with percentage breakdown
 export const YesNoDistributionCard: React.FC<YesNoDistributionCardProps> = ({
   distribution,
 }) => {

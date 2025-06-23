@@ -6,6 +6,7 @@ import { useAlert } from "../components/AlertContext";
 import logo from '../assets/logo_full.svg';
 import TitleBar from "../components/TitleBar";
 
+// authentication page with login form and session persistence options
 export const LoginPage: React.FC = () => {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');

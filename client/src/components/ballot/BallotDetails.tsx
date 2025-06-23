@@ -34,6 +34,7 @@ interface BallotDetailsProps {
   timeLeft?: number | null;
 }
 
+// detailed ballot information display component
 export const BallotDetails: React.FC<BallotDetailsProps> = ({
   description,
   type,

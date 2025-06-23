@@ -22,6 +22,7 @@ interface AlertProviderProps {
   children: React.ReactNode;
 }
 
+// global alert system for displaying toast notifications
 export const AlertProvider: React.FC<AlertProviderProps> = ({ children }) => {
   const theme = useTheme();
   const [open, setOpen] = useState(false);

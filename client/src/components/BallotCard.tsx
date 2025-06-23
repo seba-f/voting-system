@@ -19,6 +19,7 @@ interface BallotCardProps {
 	hasVoted?: boolean;
 }
 
+// ballot preview card showing key information and status
 export const BallotCard = React.memo((props: BallotCardProps) => {
 	const { ballot } = props;
 	const navigate = useNavigate();

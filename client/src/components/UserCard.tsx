@@ -225,6 +225,7 @@ const EditUserDialog: React.FC<EditUserDialogProps> = ({
 	);
 };
 
+// user information card with role badges and admin actions
 export const UserCard = ({ user, options, onDelete, onUpdate }: UserCardProps) => {
 	const [anchorEl, setAnchorEl] = React.useState<null | HTMLElement>(null);
 	const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);

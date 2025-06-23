@@ -11,6 +11,7 @@ interface BallotInstance {
 /**
  * Get all categories with their roles and ballots
  */
+// retrieve all ballot categories with associated roles and ballots
 export const getAllCategories = async (req: Request, res: Response): Promise<void> => {
     try {
         const categories = await Category.findAll({

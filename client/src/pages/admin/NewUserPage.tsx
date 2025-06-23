@@ -34,6 +34,7 @@ interface Role {
     name: string;
 }
 
+// admin page for creating new users with role assignments
 export const NewUserPage: React.FC = () => {
     const navigate = useNavigate();
     const { showAlert } = useAlert();
