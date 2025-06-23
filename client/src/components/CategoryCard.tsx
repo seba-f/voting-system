@@ -439,8 +439,8 @@ export const CategoryCard: React.FC<CategoryCardProps> = ({ category, onDelete, 
                                                 ballot.status === "Active"
                                                     ? "success"
                                                     : ballot.status === "Suspended"
-                                                    ? "error"
-                                                    : "warning"
+                                                    ? "warning"
+                                                    : "error"
                                             }
                                             size="small"
                                         />
