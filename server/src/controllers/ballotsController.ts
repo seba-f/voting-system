@@ -1087,30 +1087,58 @@ export const getBallotAnalytics = async (req: AuthRequest, res: Response): Promi
         }
 
         // Calculate voting frequency per hour (using unique voters per hour for multiple choice)
-        const hourlyDistribution = votes.reduce((acc, vote) => {
+        const votesGroupedByDay = votes.reduce((acc, vote) => {
             const timestamp = new Date(vote.timestamp);
-            const hour = timestamp.getHours();
+            const dateKey = timestamp.toISOString().split('T')[0];
+            if (!acc[dateKey]) {
+                acc[dateKey] = [];
+            }
+            acc[dateKey].push(vote);
+            return acc;
+        }, {} as { [key: string]: typeof votes });
+
+        const dateKeys = Object.keys(votesGroupedByDay).sort();
+        const hourlyDistributionByDate = dateKeys.map(date => {
+            const dayVotes = votesGroupedByDay[date];
+            const distribution = dayVotes.reduce((acc, vote) => {
+                const timestamp = new Date(vote.timestamp);
+                const hour = timestamp.getHours();
             
-            if (ballot.ballotType === 'MULTIPLE_CHOICE' || ballot.ballotType === 'RANKED_CHOICE') {
-                // Create a unique key for user and hour
-                const userHourKey = `${vote.userId}-${hour}`;
-                if (!acc.userTracking[userHourKey]) {
-                    acc.userTracking[userHourKey] = true;
+                if (ballot.ballotType === 'MULTIPLE_CHOICE' || ballot.ballotType === 'RANKED_CHOICE') {
+                    // Create a unique key for user and hour
+                    const userHourKey = `${vote.userId}-${hour}`;
+                    if (!acc.userTracking[userHourKey]) {
+                        acc.userTracking[userHourKey] = true;
+                        acc.distribution[hour] = (acc.distribution[hour] || 0) + 1;
+                    }
+                } else {
                     acc.distribution[hour] = (acc.distribution[hour] || 0) + 1;
                 }
-            } else {
-                acc.distribution[hour] = (acc.distribution[hour] || 0) + 1;
-            }
-            return acc;
-        }, { distribution: {}, userTracking: {} }).distribution;// Format the response with full analytics
+                return acc;
+            }, { distribution: {}, userTracking: {} }).distribution;
+
+            // Ensure all hours are represented
+            const fullDistribution = Array.from({ length: 24 }, (_, hour) => ({
+                hour,
+                votes: distribution[hour] || 0
+            }));
+
+            return {
+                date,
+                hourlyDistribution: fullDistribution
+            };
+        });
+
+        // Format the response with full analytics
         const baseAnalytics = {
             totalVoters: uniqueVoters,
             totalVotes: votes.length,
             eligibleUsers,
             participationRate: uniqueVoters / eligibleUsers,
+            hourlyDistributionByDate: hourlyDistributionByDate,
             hourlyDistribution: Array.from({ length: 24 }, (_, hour) => ({
                 hour,
-                votes: hourlyDistribution[hour] || 0
+                votes: votes.filter(v => new Date(v.timestamp).getHours() === hour).length
             }))
         };        // Add type-specific data
         const analytics = (() => {

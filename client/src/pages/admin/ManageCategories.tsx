@@ -305,12 +305,12 @@ export const CategoriesList: React.FC = () => {
                                 <Typography color="text.secondary">
                                     No categories found.
                                 </Typography>
-                            ) : (
-                                filteredCategories.map(category => (
+                            ) : (                                filteredCategories.map(category => (
                                     <CategoryCard 
                                         key={category.id}
                                         category={category}
                                         onDelete={handleCategoryDelete}
+                                        onUpdate={handleRefresh}
                                     />
                                 ))
                             )}

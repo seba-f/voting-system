@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
     Card,
     CardContent,
@@ -16,7 +16,10 @@ import {
     Chip,
     alpha,
     useTheme,
-    Divider
+    Divider,
+    TextField,
+    Autocomplete,
+    CircularProgress
 } from '@mui/material';
 import {
     Edit as EditIcon,
@@ -32,7 +35,7 @@ interface CategoryCardProps {
     category: {
         id: number;
         name: string;
-        roles: Array<{ name: string }>;
+        roles: Array<{ id?: number; name: string }>;
         ballots: Array<{
             id: number;
             title: string;
@@ -40,6 +43,7 @@ interface CategoryCardProps {
         }>;
     };
     onDelete?: (categoryId: number) => void;
+    onUpdate?: (categoryId: number) => void;
 }
 
 interface DeleteConfirmationDialogProps {
@@ -47,6 +51,22 @@ interface DeleteConfirmationDialogProps {
     onClose: () => void;
     categoryName: string;
     onConfirm: () => void;
+}
+
+interface EditCategoryDialogProps {
+    open: boolean;
+    onClose: () => void;
+    category: {
+        id: number;
+        name: string;
+        roles: Array<{ id?: number; name: string }>;
+    };
+    onConfirm: (id: number, name: string, roleIds: number[]) => Promise<void>;
+}
+
+interface Role {
+    id: number;
+    name: string;
 }
 
 const DeleteConfirmationDialog: React.FC<DeleteConfirmationDialogProps> = ({
@@ -72,12 +92,165 @@ const DeleteConfirmationDialog: React.FC<DeleteConfirmationDialogProps> = ({
     </Dialog>
 );
 
-export const CategoryCard: React.FC<CategoryCardProps> = ({ category, onDelete }) => {
+const EditCategoryDialog: React.FC<EditCategoryDialogProps> = ({
+    open,
+    onClose,
+    category,
+    onConfirm,
+}) => {
+    const [name, setName] = useState(category.name);
+    const [roles, setRoles] = useState<Role[]>([]);
+    const [selectedRoles, setSelectedRoles] = useState<Role[]>(
+        category.roles.map((role) => ({ ...role, id: role.id || 0 }))
+    );
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
+    const { showAlert } = useAlert();
+
+    useEffect(() => {
+        const fetchRoles = async () => {
+            try {
+                const response = await API.get("/roles");
+                const allRoles = response.data.roles;
+                setRoles(allRoles);
+                const initialSelectedRoles = allRoles.filter((role: Role) =>
+                    category.roles.some(categoryRole => categoryRole.name === role.name)
+                );
+                setSelectedRoles(initialSelectedRoles);
+            } catch (err) {
+                console.error("Failed to load roles:", err);
+                showAlert("Failed to load roles", "error");
+                setError("Failed to load roles");
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchRoles();
+    }, [showAlert, category.roles]);
+
+    const handleSubmit = async () => {
+        try {
+            await onConfirm(category.id, name, selectedRoles.map((role) => role.id));
+            onClose();
+        } catch (error) {
+            console.error("Error updating category:", error);
+            showAlert("Failed to update category", "error");
+        }
+    };
+
+    return (
+        <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
+            <DialogTitle>Edit Category</DialogTitle>
+            <DialogContent>
+                <Box sx={{ display: "flex", flexDirection: "column", gap: 2, mt: 2 }}>
+                    <TextField
+                        fullWidth
+                        label="Name"
+                        value={name}
+                        onChange={(e) => setName(e.target.value)}
+                    />
+                    {loading ? (
+                        <CircularProgress size={24} />
+                    ) : error ? (
+                        <Typography color="error">{error}</Typography>
+                    ) : (
+                        <Autocomplete
+                            multiple
+                            disableCloseOnSelect
+                            value={selectedRoles}
+                            onChange={(_, newValue) => setSelectedRoles(newValue)}
+                            options={roles}
+                            getOptionLabel={(option) => option.name}
+                            isOptionEqualToValue={(option, value) => option.id === value.id}
+                            renderInput={(params) => (
+                                <TextField
+                                    {...params}
+                                    label="Roles"
+                                    placeholder={selectedRoles.length ? "Add more roles..." : "Select roles..."}
+                                />
+                            )}
+                            renderTags={(value: Role[]) =>
+                                value.map((option: Role) => (
+                                    <Box key={option.id} sx={{ m: 0.5 }}>
+                                        <MockChip
+                                            label={option.name}
+                                            onDelete={() => {
+                                                setSelectedRoles(selectedRoles.filter(r => r.id !== option.id));
+                                            }}
+                                            variant="info"
+                                        />
+                                    </Box>
+                                ))
+                            }
+                            renderOption={(props, option: Role, { selected }) => (
+                                <li {...props}>
+                                    <Box
+                                        component="span"
+                                        sx={{
+                                            width: 20,
+                                            height: 20,
+                                            border: "2px solid",
+                                            borderColor: selected ? "primary.main" : "grey.400",
+                                            borderRadius: 0.5,
+                                            mr: 1,
+                                            display: "inline-flex",
+                                            alignItems: "center",
+                                            justifyContent: "center",
+                                            backgroundColor: selected ? "primary.main" : "transparent",
+                                        }}
+                                    >
+                                        {selected && (
+                                            <Typography
+                                                component="span"
+                                                sx={{
+                                                    color: "white",
+                                                    fontSize: "0.8rem",
+                                                    fontWeight: "bold",
+                                                }}
+                                            >
+                                                ✓
+                                            </Typography>
+                                        )}
+                                    </Box>
+                                    {option.name}
+                                </li>
+                            )}
+                        />
+                    )}
+                </Box>
+            </DialogContent>
+            <DialogActions>
+                <Button onClick={onClose}>Cancel</Button>
+                <Button
+                    onClick={handleSubmit}
+                    variant="contained"
+                    disabled={loading || !name.trim()}
+                >
+                    Save Changes
+                </Button>
+            </DialogActions>
+        </Dialog>
+    );
+};
+
+export const CategoryCard: React.FC<CategoryCardProps> = ({ category, onDelete, onUpdate }) => {
     const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
     const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+    const [editDialogOpen, setEditDialogOpen] = useState(false);
     const [expanded, setExpanded] = useState(false);
     const theme = useTheme();
     const { showAlert } = useAlert();
+
+    const handleExpandClick = (event: React.MouseEvent) => {
+        const target = event.target as HTMLElement;
+        if (!target.closest('#category-menu-button') && !target.closest('#category-menu')) {
+            setExpanded(!expanded);
+        }
+    };    const handleMenuClick = (event: React.MouseEvent<HTMLButtonElement>) => {
+        event.stopPropagation();
+        setAnchorEl(event.currentTarget);
+    };
 
     const handleDeleteConfirm = () => {
         showAlert("Deleting category...", "info");
@@ -93,10 +266,21 @@ export const CategoryCard: React.FC<CategoryCardProps> = ({ category, onDelete }
         setDeleteDialogOpen(false);
     };
 
+    const handleEditConfirm = async (id: number, name: string, roleIds: number[]) => {
+        try {
+            showAlert("Updating category...", "info");
+            await API.put(`/categories/${id}`, { name, roleIds });
+            showAlert("Category updated successfully", "success");
+            onUpdate?.(id);
+        } catch (error) {
+            console.error("Error updating category:", error);
+            throw error;
+        }
+    };
+
     return (
         <>
             <Card sx={{ width: "100%" }}>
-                {/* Clickable Header */}
                 <Box
                     sx={{
                         cursor: 'pointer',
@@ -104,24 +288,20 @@ export const CategoryCard: React.FC<CategoryCardProps> = ({ category, onDelete }
                             bgcolor: theme.palette.action.hover
                         }
                     }}
-                    onClick={(event) => {
-                        const target = event.target as HTMLElement;
-                        if (!target.closest('#category-menu-button')) {
-                            setExpanded(!expanded);
-                        }
-                    }}
+                    onClick={handleExpandClick}
                 >
                     <CardContent sx={{ py: "12px", "&:last-child": { pb: "12px" } }}>
                         <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                             <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
                                 <Typography variant="h6" component="div">
                                     {category.name}
-                                </Typography>                                <Box sx={{ display: "flex", gap: 1 }}>
+                                </Typography>
+                                <Box sx={{ display: "flex", gap: 1 }}>
                                     <Box
                                         sx={{
                                             display: 'inline-flex',
                                             alignItems: 'center',
-                                            height: '24px', // Similar to small Chip height
+                                            height: '24px',
                                             px: 1,
                                             py: 0.5,
                                             fontSize: '0.75rem',
@@ -138,7 +318,7 @@ export const CategoryCard: React.FC<CategoryCardProps> = ({ category, onDelete }
                                         sx={{
                                             display: 'inline-flex',
                                             alignItems: 'center',
-                                            height: '24px', // Similar to small Chip height
+                                            height: '24px',
                                             px: 1,
                                             py: 0.5,
                                             fontSize: '0.75rem',
@@ -167,23 +347,49 @@ export const CategoryCard: React.FC<CategoryCardProps> = ({ category, onDelete }
                                     aria-label="more"
                                     aria-controls="category-menu"
                                     aria-haspopup="true"
-                                    onClick={(event) => {
-                                        event.stopPropagation();
-                                        setAnchorEl(event.currentTarget);
-                                    }}
+                                    onClick={handleMenuClick}
+                                    size="small"
                                 >
                                     <MoreVertIcon />
                                 </IconButton>
+                                <Menu
+                                    id="category-menu"
+                                    anchorEl={anchorEl}
+                                    keepMounted
+                                    open={Boolean(anchorEl)}
+                                    onClick={(event) => event.stopPropagation()}
+                                    onClose={() => setAnchorEl(null)}
+                                >
+                                    <MenuItem
+                                        onClick={(event) => {
+                                            event.stopPropagation();
+                                            setEditDialogOpen(true);
+                                            setAnchorEl(null);
+                                        }}
+                                    >
+                                        <EditIcon sx={{ mr: 1 }} />
+                                        Edit
+                                    </MenuItem>
+                                    <MenuItem
+                                        onClick={(event) => {
+                                            event.stopPropagation();
+                                            setDeleteDialogOpen(true);
+                                            setAnchorEl(null);
+                                        }}
+                                        sx={{ color: "error.main" }}
+                                    >
+                                        <DeleteIcon sx={{ mr: 1 }} />
+                                        Delete
+                                    </MenuItem>
+                                </Menu>
                             </Box>
                         </Box>
                     </CardContent>
                 </Box>
 
-                {/* Divider and Expandable Content */}
                 <Collapse in={expanded} timeout="auto">
                     <Divider />
                     <CardContent>
-                        {/* Roles Section */}
                         <Typography variant="subtitle2" color="text.secondary" gutterBottom>
                             Roles with access:
                         </Typography>
@@ -193,15 +399,19 @@ export const CategoryCard: React.FC<CategoryCardProps> = ({ category, onDelete }
                                     No roles assigned
                                 </Typography>
                             ) : (
-                                category.roles.map((role) => (
-                                    <MockChip label={role.name} variant='info' size='small'></MockChip>
+                                category.roles.map((role, index) => (
+                                    <MockChip 
+                                        key={index}
+                                        label={role.name} 
+                                        variant="info" 
+                                        size="small"
+                                    />
                                 ))
                             )}
                         </Box>
 
-                        {/* Ballots Section */}
                         <Typography variant="subtitle2" color="text.secondary" gutterBottom>
-                            Associated ballots:
+                            Ballots:
                         </Typography>
                         <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
                             {category.ballots.length === 0 ? (
@@ -216,31 +426,23 @@ export const CategoryCard: React.FC<CategoryCardProps> = ({ category, onDelete }
                                             display: "flex",
                                             justifyContent: "space-between",
                                             alignItems: "center",
-                                            px: 2,
-                                            py: 1,
+                                            bgcolor: alpha(theme.palette.background.default, 0.5),
+                                            p: 1,
                                             borderRadius: 1,
-                                            bgcolor: alpha(theme.palette.background.default, 0.6),
                                         }}
                                     >
-                                        <Typography variant="body2">
-                                            {ballot.title}
-                                        </Typography>                                        <Box
-                                            sx={{
-                                                display: 'inline-flex',
-                                                alignItems: 'center',
-                                                height: '24px',
-                                                px: 1,
-                                                py: 0.5,
-                                                fontSize: '0.75rem',
-                                                fontWeight: 'medium',
-                                                borderRadius: '12px',
-                                                bgcolor: alpha(theme.palette.secondary.main, 0.1),
-                                                color: theme.palette.secondary.main,
-                                                userSelect: 'none'
-                                            }}
-                                        >
-                                            {ballot.status}
-                                        </Box>
+                                        <Typography variant="body2">{ballot.title}</Typography>
+                                        <MockChip
+                                            label={ballot.status}
+                                            variant={
+                                                ballot.status === "Active"
+                                                    ? "success"
+                                                    : ballot.status === "Suspended"
+                                                    ? "error"
+                                                    : "warning"
+                                            }
+                                            size="small"
+                                        />
                                     </Box>
                                 ))
                             )}
@@ -249,41 +451,18 @@ export const CategoryCard: React.FC<CategoryCardProps> = ({ category, onDelete }
                 </Collapse>
             </Card>
 
-            {/* Menu */}
-            <Menu
-                id="category-menu"
-                anchorEl={anchorEl}
-                keepMounted
-                open={Boolean(anchorEl)}
-                onClose={() => setAnchorEl(null)}
-            >
-                <MenuItem
-                    onClick={() => {
-                        /* handle edit */
-                        setAnchorEl(null);
-                    }}
-                >
-                    <EditIcon sx={{ mr: 1 }} />
-                    Edit
-                </MenuItem>
-                <MenuItem
-                    onClick={() => {
-                        setDeleteDialogOpen(true);
-                        setAnchorEl(null);
-                    }}
-                    sx={{ color: "error.main" }}
-                >
-                    <DeleteIcon sx={{ mr: 1 }} />
-                    Delete
-                </MenuItem>
-            </Menu>
-
-            {/* Delete Confirmation Dialog */}
             <DeleteConfirmationDialog
                 open={deleteDialogOpen}
                 onClose={() => setDeleteDialogOpen(false)}
                 categoryName={category.name}
                 onConfirm={handleDeleteConfirm}
+            />
+
+            <EditCategoryDialog
+                open={editDialogOpen}
+                onClose={() => setEditDialogOpen(false)}
+                category={category}
+                onConfirm={handleEditConfirm}
             />
         </>
     );

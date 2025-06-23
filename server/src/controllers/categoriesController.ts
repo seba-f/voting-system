@@ -142,3 +142,73 @@ export const deleteCategory = async (req: Request, res: Response): Promise<void>
         });
     }
 };
+
+/**
+ * Update a category
+ */
+export const updateCategory = async (req: Request, res: Response): Promise<void> => {
+    try {
+        const { id } = req.params;
+        const { name, roleIds } = req.body;
+
+        if (!name) {
+            res.status(400).json({ message: 'Category name is required' });
+            return;
+        }
+
+        // Update category name
+        await Category.update({ name }, { where: { id } });
+
+        // Update roles
+        if (roleIds && Array.isArray(roleIds)) {
+            // Remove existing role associations
+            await CategoryRoles.destroy({ where: { categoryId: id } });
+            
+            // Add new role associations
+            await Promise.all(
+                roleIds.map(roleId => 
+                    CategoryRoles.create({
+                        categoryId: parseInt(id),
+                        roleId
+                    })
+                )
+            );
+        }
+
+        // Fetch updated category with roles for response
+        const updatedCategory = await Category.findOne({
+            where: { id },
+            include: [
+                {
+                    model: Role,
+                    through: { attributes: [] },
+                    attributes: ['name']
+                },
+                {
+                    model: Ballot,
+                    attributes: ['id', 'title', 'isSuspended', 'limitDate']
+                }
+            ]
+        });
+
+        res.status(200).json({
+            message: 'Category updated successfully',
+            category: {
+                id: updatedCategory.id,
+                name: updatedCategory.name,
+                roles: updatedCategory.get('Roles'),
+                ballots: (updatedCategory.get('Ballots') as BallotInstance[]).map(ballot => ({
+                    id: ballot.id,
+                    title: ballot.title,
+                    status: ballot.isSuspended ? 'Suspended' : new Date(ballot.limitDate) > new Date() ? 'Active' : 'Ended'
+                }))
+            }
+        });
+    } catch (err) {
+        console.error('Error updating category:', err);
+        res.status(500).json({ 
+            message: 'Error updating category',
+            error: err.message 
+        });
+    }
+};

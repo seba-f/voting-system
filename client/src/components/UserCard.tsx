@@ -107,8 +107,8 @@ const EditUserDialog: React.FC<EditUserDialogProps> = ({
 				const allRoles = response.data.roles;
 				setRoles(allRoles);
 				// Initialize selected roles with the complete role objects from the fetched roles
-				const initialSelectedRoles = allRoles.filter(role => 
-					user.roles.some(userRole => userRole.name === role.name)
+				const initialSelectedRoles: Role[] = allRoles.filter((role: Role) => 
+					user.roles.some((userRole: { id?: number; name: string }) => userRole.name === role.name)
 				);
 				setSelectedRoles(initialSelectedRoles);
 			} catch (err) {

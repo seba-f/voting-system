@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState, useCallback } from "react";
 import {
   Box,
   Typography,
@@ -7,7 +7,14 @@ import {
   Alert,
   Fade,
   useTheme,
+  IconButton,
+  Stack,
 } from "@mui/material";
+import {
+  NavigateBefore as NavigateBeforeIcon,
+  NavigateNext as NavigateNextIcon,
+} from "@mui/icons-material";
+import { format } from "date-fns";
 import { Bar } from "react-chartjs-2";
 import { ParticipationCard } from "./ParticipationCard";
 import { YesNoDistributionCard } from "./YesNoDistributionCard";
@@ -25,6 +32,11 @@ interface HourlyDistribution {
   votes: number;
 }
 
+interface HourlyDistributionByDate {
+  date: string;
+  hourlyDistribution: HourlyDistribution[];
+}
+
 interface RankDistribution {
   [optionId: number]: {
     [rank: number]: number;
@@ -38,6 +50,7 @@ interface Analytics {
   participationRate: number;
   choiceDistribution: ChoiceDistribution[];
   hourlyDistribution: HourlyDistribution[];
+  hourlyDistributionByDate: HourlyDistributionByDate[];
   rankDistribution?: RankDistribution;
 }
 
@@ -60,6 +73,7 @@ export const BallotAnalytics = ({
   options = []
 }: BallotAnalyticsProps) => {
   const theme = useTheme();
+  const [selectedDateIndex, setSelectedDateIndex] = useState(0);
 
   const chartOptions = {
     responsive: true,
@@ -114,12 +128,19 @@ export const BallotAnalytics = ({
     ],
   } : null;
 
+  const getCurrentDateData = useCallback(() => {
+    if (!analytics?.hourlyDistributionByDate?.length) {
+      return analytics?.hourlyDistribution || [];
+    }
+    return analytics.hourlyDistributionByDate[selectedDateIndex].hourlyDistribution;
+  }, [analytics, selectedDateIndex]);
+
   const hourlyDistributionData = analytics ? {
-    labels: analytics.hourlyDistribution.map((hour) => `${hour.hour}:00`),
+    labels: getCurrentDateData().map((hour) => `${hour.hour}:00`),
     datasets: [
       {
         label: "Votes per Hour",
-        data: analytics.hourlyDistribution.map((hour) => hour.votes),
+        data: getCurrentDateData().map((hour) => hour.votes),
         backgroundColor: theme.palette.primary.main,
         borderColor: theme.palette.primary.main,
         borderWidth: 1,
@@ -127,6 +148,18 @@ export const BallotAnalytics = ({
       },
     ],
   } : null;
+
+  const handlePreviousDay = () => {
+    if (selectedDateIndex > 0) {
+      setSelectedDateIndex(prev => prev - 1);
+    }
+  };
+
+  const handleNextDay = () => {
+    if (analytics?.hourlyDistributionByDate && selectedDateIndex < analytics.hourlyDistributionByDate.length - 1) {
+      setSelectedDateIndex(prev => prev + 1);
+    }
+  };
 
   if (!analytics) {
     return (
@@ -189,10 +222,33 @@ export const BallotAnalytics = ({
             }}
           >
             <CardContent sx={{ height: "100%" }}>
-              <Typography variant="h6" gutterBottom color="primary" sx={{ mb: 2 }}>
-                Voting Activity
-              </Typography>
-              <Box sx={{ height: "calc(100% - 42px)" }}>
+              <Stack direction="row" alignItems="center" spacing={2} sx={{ mb: 2 }}>
+                <Typography variant="h6" color="primary">
+                  Voting Activity
+                </Typography>
+                {analytics.hourlyDistributionByDate?.length > 0 && (
+                  <Stack direction="row" alignItems="center" spacing={1}>
+                    <IconButton
+                      size="small"
+                      onClick={handlePreviousDay}
+                      disabled={selectedDateIndex === 0}
+                    >
+                      <NavigateBeforeIcon />
+                    </IconButton>
+                    <Typography variant="body2" color="text.secondary">
+                      {format(new Date(analytics.hourlyDistributionByDate[selectedDateIndex].date), 'MMM d, yyyy')}
+                    </Typography>
+                    <IconButton
+                      size="small"
+                      onClick={handleNextDay}
+                      disabled={selectedDateIndex === analytics.hourlyDistributionByDate.length - 1}
+                    >
+                      <NavigateNextIcon />
+                    </IconButton>
+                  </Stack>
+                )}
+              </Stack>
+              <Box sx={{ height: "calc(100% - 62px)" }}>
                 <Bar data={hourlyDistributionData} options={chartOptions} />
               </Box>
             </CardContent>
