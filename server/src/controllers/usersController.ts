@@ -153,3 +153,65 @@ export const updateUserActiveStatus = async (req: Request, res: Response): Promi
         });
     }
 };
+
+/**
+ * Update user details and roles
+ */
+export const updateUser = async (req: Request, res: Response): Promise<void> => {
+    try {
+        const { id } = req.params;
+        const { username, roleIds } = req.body;
+
+        const user = await User.findByPk(id);
+        if (!user) {
+            res.status(404).json({ message: 'User not found' });
+            return;
+        }
+
+        // Update username if provided
+        if (username) {
+            user.username = username;
+            await user.save();
+        }
+
+        // Update roles if provided
+        if (roleIds && Array.isArray(roleIds)) {
+            // Remove all current roles
+            await UserRoles.destroy({
+                where: { userId: id }
+            });
+
+            // Add new roles
+            await Promise.all(
+                roleIds.map(roleId => 
+                    UserRoles.create({
+                        userId: user.id,
+                        roleId
+                    })
+                )
+            );
+        }
+
+        // Fetch updated user with roles
+        const updatedUser = await User.findOne({
+            where: { id },
+            attributes: ['id', 'email', 'username', 'isActive'],
+            include: [{
+                model: Role,
+                through: { attributes: [] },
+                attributes: ['id', 'name']
+            }]
+        });
+
+        res.status(200).json({
+            message: 'User updated successfully',
+            user: updatedUser
+        });
+    } catch (err) {
+        console.error('Error updating user:', err);
+        res.status(500).json({ 
+            message: 'Error updating user',
+            error: err.message 
+        });
+    }
+};

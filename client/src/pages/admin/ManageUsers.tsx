@@ -26,7 +26,7 @@ interface User {
     username: string;
     email: string;
     isActive: boolean;
-    roles: Array<{ name: string }>;
+    roles: Array<{ id: number; name: string }>;
 
 }
 
@@ -87,6 +87,14 @@ export const UsersList: React.FC = () => {
             user.roles.forEach(role => roles.add(role.name));
         });
         setAvailableRoles(Array.from(roles));
+    };
+
+    const handleUserUpdate = async (userId: number) => {
+        try {
+            await fetchUsers(false); // Refresh users list with loading=false
+        } catch (error) {
+            console.error("Error refreshing users after update:", error);
+        }
     };
 
     // Extract unique roles from users
@@ -151,6 +159,7 @@ export const UsersList: React.FC = () => {
                                         user={user}
                                         options={currentUser?.id !== user.id}
                                         onDelete={handleUserDelete}
+                                        onUpdate={handleUserUpdate}
                                     />
                                 ))}
                             </Box>

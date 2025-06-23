@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
 	Card,
 	CardContent,
@@ -13,6 +13,10 @@ import {
 	DialogContent,
 	DialogActions,
 	Button,
+	TextField,
+	Autocomplete,
+	Chip,
+	CircularProgress,
 } from "@mui/material";
 import {
 	Edit as EditIcon,
@@ -22,16 +26,18 @@ import {
 import { useTheme } from "@mui/material/styles";
 import API from "../api/axios";
 import { useAlert } from "./AlertContext";
+import { MockChip } from "./MockChip";
 
 interface UserCardProps {
 	user: {
 		id: number;
 		username: string;
 		isActive: boolean;
-		roles: Array<{ name: string }>;
+		roles: Array<{ id?: number; name: string }>;
 	};
 	options: boolean;
 	onDelete?: (userId: number) => void;
+	onUpdate?: (userId: number) => void;
 }
 
 interface DeleteConfirmationDialogProps {
@@ -39,6 +45,22 @@ interface DeleteConfirmationDialogProps {
 	onClose: () => void;
 	username: string;
 	onConfirm: () => void;
+}
+
+interface EditUserDialogProps {
+	open: boolean;
+	onClose: () => void;
+	user: {
+		id: number;
+		username: string;
+		roles: Array<{ id?: number; name: string }>;
+	};
+	onConfirm: (id: number, username: string, roleIds: number[]) => Promise<void>;
+}
+
+interface Role {
+	id: number;
+	name: string;
 }
 
 const DeleteConfirmationDialog: React.FC<DeleteConfirmationDialogProps> = ({
@@ -64,9 +86,149 @@ const DeleteConfirmationDialog: React.FC<DeleteConfirmationDialogProps> = ({
 	</Dialog>
 );
 
-export const UserCard = ({ user, options, onDelete }: UserCardProps) => {
+const EditUserDialog: React.FC<EditUserDialogProps> = ({
+	open,
+	onClose,
+	user,
+	onConfirm,
+}) => {
+	const [username, setUsername] = useState(user.username);
+	const [roles, setRoles] = useState<Role[]>([]);
+	const [selectedRoles, setSelectedRoles] = useState<Role[]>(
+		user.roles.map((role) => ({ ...role, id: role.id || 0 }))
+	);
+	const [loading, setLoading] = useState(true);
+	const [error, setError] = useState<string | null>(null);
+	const { showAlert } = useAlert();
+	useEffect(() => {
+		const fetchRoles = async () => {
+			try {
+				const response = await API.get("/roles");
+				const allRoles = response.data.roles;
+				setRoles(allRoles);
+				// Initialize selected roles with the complete role objects from the fetched roles
+				const initialSelectedRoles = allRoles.filter(role => 
+					user.roles.some(userRole => userRole.name === role.name)
+				);
+				setSelectedRoles(initialSelectedRoles);
+			} catch (err) {
+				console.error("Failed to load roles:", err);
+				showAlert("Failed to load roles", "error");
+				setError("Failed to load roles");
+			} finally {
+				setLoading(false);
+			}
+		};
+
+		fetchRoles();
+	}, [showAlert, user.roles]);
+
+	const handleSubmit = async () => {
+		try {
+			await onConfirm(user.id, username, selectedRoles.map((role) => role.id));
+			onClose();
+		} catch (error) {
+			console.error("Error updating user:", error);
+			showAlert("Failed to update user", "error");
+		}
+	};
+
+	return (
+		<Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
+			<DialogTitle>Edit User</DialogTitle>
+			<DialogContent>
+				<Box sx={{ display: "flex", flexDirection: "column", gap: 2, mt: 2 }}>
+					<TextField
+						fullWidth
+						label="Username"
+						value={username}
+						onChange={(e) => setUsername(e.target.value)}
+					/>
+					{loading ? (
+						<CircularProgress size={24} />
+					) : error ? (
+						<Typography color="error">{error}</Typography>
+					) : (						<Autocomplete
+							multiple
+							disableCloseOnSelect
+							value={selectedRoles}
+							onChange={(_, newValue) => setSelectedRoles(newValue)}
+							options={roles}
+							getOptionLabel={(option) => option.name}							isOptionEqualToValue={(option, value) => option.id === value.id}
+							renderInput={(params) => (
+								<TextField
+									{...params}
+									label="Roles"
+									placeholder={selectedRoles.length ? "Add more roles..." : "Select roles..."}
+								/>
+							)}							renderTags={(value: Role[]) =>
+								value.map((option: Role) => (
+									<Box key={option.id} sx={{ m: 0.5 }}>
+										<MockChip
+											label={option.name}
+											onDelete={() => {
+												setSelectedRoles(selectedRoles.filter(r => r.id !== option.id));
+											}}
+											variant="info"
+										/>
+									</Box>
+								))
+							}
+							renderOption={(props, option: Role, { selected }) => (
+								<li {...props}>
+									<Box
+										component="span"
+										sx={{
+											width: 20,
+											height: 20,
+											border: "2px solid",
+											borderColor: selected ? "primary.main" : "grey.400",
+											borderRadius: 0.5,
+											mr: 1,
+											display: "inline-flex",
+											alignItems: "center",
+											justifyContent: "center",
+											backgroundColor: selected ? "primary.main" : "transparent",
+										}}
+									>
+										{selected && (
+											<Typography
+												component="span"
+												sx={{
+													color: "white",
+													fontSize: "0.8rem",
+													fontWeight: "bold",
+												}}
+											>
+												✓
+											</Typography>
+										)}
+									</Box>
+									{option.name}
+								</li>
+							)}
+						/>
+					)}
+				</Box>
+			</DialogContent>
+			<DialogActions>
+				<Button onClick={onClose}>Cancel</Button>
+				<Button
+					onClick={handleSubmit}
+					variant="contained"
+					disabled={loading || !username.trim()}
+				>
+					Save Changes
+				</Button>
+			</DialogActions>
+		</Dialog>
+	);
+};
+
+export const UserCard = ({ user, options, onDelete, onUpdate }: UserCardProps) => {
 	const [anchorEl, setAnchorEl] = React.useState<null | HTMLElement>(null);
 	const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+	const [editDialogOpen, setEditDialogOpen] = useState(false);
 	const theme = useTheme();
 	const { showAlert } = useAlert();
 
@@ -84,6 +246,18 @@ export const UserCard = ({ user, options, onDelete }: UserCardProps) => {
 		setDeleteDialogOpen(false);
 	};
 
+	const handleEditConfirm = async (id: number, username: string, roleIds: number[]) => {
+		try {
+			showAlert("Updating user...", "info");
+			await API.put(`/users/${id}`, { username, roleIds });
+			showAlert("User updated successfully", "success");
+			onUpdate?.(id);
+		} catch (error) {
+			console.error("Error updating user:", error);
+			throw error;
+		}
+	};
+
 	return (
 		<>
 			<Card
@@ -92,7 +266,6 @@ export const UserCard = ({ user, options, onDelete }: UserCardProps) => {
 					bgcolor: theme.palette.background.paper,
 				}}
 			>
-				{" "}
 				<CardContent sx={{ py: "12px", "&:last-child": { pb: "12px" } }}>
 					<Box
 						sx={{
@@ -137,24 +310,15 @@ export const UserCard = ({ user, options, onDelete }: UserCardProps) => {
 								}}
 							>
 								{user.roles.map((role, index) => (
-									<Box
+									<MockChip
 										key={index}
-										sx={{
-											px: 1,
-											py: 0.5,
-											borderRadius: 50,
-											fontSize: "0.8125rem",
-											bgcolor: alpha(theme.palette.secondary.main, 0.05),
-											border: 1,
-											borderColor: alpha(theme.palette.secondary.main, 0.2),
-											color: theme.palette.text.primary,
-										}}
-									>
-										{role.name}
-									</Box>
+										label={role.name}
+										variant="info"
+										size="small"
+									/>
 								))}
 							</Box>
-						</Box>{" "}
+						</Box>
 						<Box>
 							{options && (
 								<>
@@ -175,7 +339,7 @@ export const UserCard = ({ user, options, onDelete }: UserCardProps) => {
 									>
 										<MenuItem
 											onClick={() => {
-												/* handle edit */
+												setEditDialogOpen(true);
 												setAnchorEl(null);
 											}}
 										>
@@ -204,6 +368,12 @@ export const UserCard = ({ user, options, onDelete }: UserCardProps) => {
 				onClose={() => setDeleteDialogOpen(false)}
 				username={user.username}
 				onConfirm={handleDeleteConfirm}
+			/>
+			<EditUserDialog
+				open={editDialogOpen}
+				onClose={() => setEditDialogOpen(false)}
+				user={user}
+				onConfirm={handleEditConfirm}
 			/>
 		</>
 	);
