@@ -52,30 +52,36 @@ export const ManageBallots = () => {
 	const [suspendedBallotsData, setSuspendedBallotsData] = useState([]);
 	const [loading, setLoading] = useState(true);
 
+	const fetchBallots = async () => {
+		try {
+			setLoading(true);
+			// Fetch active ballots
+			const activeResponse = await API.get("/ballots/active");
+			setActiveBallotsData(activeResponse.data);
+
+			// Fetch past ballots
+			const pastResponse = await API.get("/ballots/past");
+			setPastBallotsData(pastResponse.data);
+
+			// Fetch suspended ballots
+			const suspendedResponse = await API.get("/ballots/suspended");
+			setSuspendedBallotsData(suspendedResponse.data);
+		} catch (error) {
+			console.error("Error fetching ballots:", error);
+		} finally {
+			setLoading(false);
+		}
+	};
+
+	// Fetch on mount
 	useEffect(() => {
-		const fetchBallots = async () => {
-			try {
-				setLoading(true);
-				// Fetch active ballots
-				const activeResponse = await API.get("/ballots/active");
-				setActiveBallotsData(activeResponse.data);
-
-				// Fetch past ballots
-				const pastResponse = await API.get("/ballots/past");
-				setPastBallotsData(pastResponse.data);
-
-				// Fetch suspended ballots
-				const suspendedResponse = await API.get("/ballots/suspended");
-				setSuspendedBallotsData(suspendedResponse.data);
-			} catch (error) {
-				console.error("Error fetching ballots:", error);
-			} finally {
-				setLoading(false);
-			}
-		};
-
 		fetchBallots();
 	}, []);
+
+	// Fetch when tab changes
+	useEffect(() => {
+		fetchBallots();
+	}, [activeTab]);
 
 	const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
 		setActiveTab(newValue);
@@ -86,23 +92,6 @@ export const ManageBallots = () => {
 		navigate("/admin/ballots/new");
 	};
 	const handleRefresh = () => {
-		const fetchBallots = async () => {
-			try {
-				setLoading(true);
-				const activeResponse = await API.get("/ballots/active");
-				setActiveBallotsData(activeResponse.data);
-
-				const pastResponse = await API.get("/ballots/past");
-				setPastBallotsData(pastResponse.data);
-
-				const suspendedResponse = await API.get("/ballots/suspended");
-				setSuspendedBallotsData(suspendedResponse.data);
-			} catch (error) {
-				console.error("Error fetching ballots:", error);
-			} finally {
-				setLoading(false);
-			}
-		};
 		fetchBallots();
 	};
 	return (

@@ -12,7 +12,6 @@ import { Bar } from "react-chartjs-2";
 import { ParticipationCard } from "./ParticipationCard";
 import { YesNoDistributionCard } from "./YesNoDistributionCard";
 import { RankedChoiceDistributionCard } from "./RankedChoiceDistributionCard";
-import { scrollbarStyle } from "../../styles/scrollbar";
 
 interface ChoiceDistribution {
   optionId: number;
@@ -138,98 +137,68 @@ export const BallotAnalytics = ({
     <Fade in={!analyticsLoading}>
       <Box
         sx={{
-          height: "calc(100vh - 290px)", // Adjust based on your header/navigation height
-          overflow: "hidden" // Prevent double scrollbars
+          display: "grid",
+          gap: 3,
+          gridTemplateColumns:
+            ballotType === "TEXT_INPUT" || ballotType === "RANKED_CHOICE"
+              ? {
+                  xs: "1fr",
+                  sm: "200px 1fr",
+                }
+              : {
+                  xs: "1fr",
+                  sm: "200px 1fr",
+                  lg: "200px 1fr 1fr",
+                },
         }}
       >
-        <Box
-          sx={{
-            display: "grid",
-            gap: 3,
-            p: 2,
-            height: "100%",
-            overflowY: "auto",
-            ...scrollbarStyle,
-            gridTemplateColumns: {
-              xs: "1fr",
-              sm: ballotType === "TEXT_INPUT" 
-                ? "minmax(200px, 300px) 1fr"
-                : "minmax(200px, 300px) 1fr",
-            },
-            gridTemplateAreas: {
-              xs: `
-                "participation"
-                "activity"
-                "distribution"
-              `,
-              sm: `
-                "participation activity"
-                "distribution distribution"
-              `
-            }
-          }}
-        >
-          <Box sx={{ 
-            gridArea: "participation",
-            height: { xs: "auto", sm: 400 }
-          }}>
-            <ParticipationCard
-              participationRate={analytics.participationRate}
+        <ParticipationCard
+          participationRate={analytics.participationRate}
+          totalVotes={analytics.totalVotes}
+          totalVoters={analytics.totalVoters}
+          eligibleUsers={analytics.eligibleUsers}
+        />
+
+        {analytics.choiceDistribution && (
+          ballotType === "YES_NO" ? (
+            <YesNoDistributionCard distribution={analytics.choiceDistribution} />
+          ) : ballotType === "RANKED_CHOICE" && analytics.rankDistribution ? (
+            <RankedChoiceDistributionCard
+              rankDistribution={analytics.rankDistribution}
+              options={options}
               totalVotes={analytics.totalVotes}
-              totalVoters={analytics.totalVoters}
-              eligibleUsers={analytics.eligibleUsers}
             />
-          </Box>
+          ) : (
+            choiceDistributionData && (
+              <Card elevation={2}>
+                <CardContent>
+                  <Typography
+                    variant="h6"
+                    gutterBottom
+                    color="primary"
+                    sx={{ mb: 2 }}
+                  >
+                    Choice Distribution
+                  </Typography>
+                  <Box sx={{ height: { xs: 250, sm: 300 } }}>
+                    <Bar data={choiceDistributionData} options={chartOptions} />
+                  </Box>
+                </CardContent>
+              </Card>
+            )
+          )
+        )}
 
-          <Card 
-            elevation={2} 
-            sx={{ 
-              gridArea: "activity",
-              height: { xs: "auto", sm: 400 }
-            }}
-          >
-            <CardContent sx={{ height: "100%" }}>
-              <Typography variant="h6" gutterBottom color="primary" sx={{ mb: 2 }}>
-                Voting Activity
-              </Typography>
-              <Box sx={{ height: "calc(100% - 42px)" }}>
-                <Bar data={hourlyDistributionData} options={chartOptions} />
-              </Box>
-            </CardContent>
-          </Card>
-
-          {analytics.choiceDistribution && (
-            <Box sx={{ gridArea: "distribution" }}>
-              {ballotType === "YES_NO" ? (
-                <YesNoDistributionCard distribution={analytics.choiceDistribution} />
-              ) : ballotType === "RANKED_CHOICE" && analytics.rankDistribution ? (
-                <RankedChoiceDistributionCard
-                  rankDistribution={analytics.rankDistribution}
-                  options={options}
-                  totalVotes={analytics.totalVotes}
-                />
-              ) : (
-                choiceDistributionData && (
-                  <Card elevation={2}>
-                    <CardContent>
-                      <Typography
-                        variant="h6"
-                        gutterBottom
-                        color="primary"
-                        sx={{ mb: 2 }}
-                      >
-                        Choice Distribution
-                      </Typography>
-                      <Box sx={{ height: { xs: 250, sm: 300 } }}>
-                        <Bar data={choiceDistributionData} options={chartOptions} />
-                      </Box>
-                    </CardContent>
-                  </Card>
-                )
-              )}
+        <Card elevation={2} sx={{ gridColumn: ballotType === "TEXT_INPUT" ? "2" : "auto" }}>
+          <CardContent>
+            <Typography variant="h6" gutterBottom color="primary" sx={{ mb: 2 }}>
+              Voting Activity
+            </Typography>
+            <Box sx={{ height: { xs: 250, sm: 300 } }}>
+              <Bar data={hourlyDistributionData} options={chartOptions} />
             </Box>
-          )}
-        </Box>
+          </CardContent>
+        </Card>
       </Box>
     </Fade>
   );

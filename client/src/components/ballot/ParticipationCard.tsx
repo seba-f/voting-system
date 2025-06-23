@@ -32,20 +32,20 @@ export const ParticipationCard: React.FC<ParticipationCardProps> = ({
           display: "flex",
           flexDirection: "column",
           alignItems: "center",
-          justifyContent: "center",
-          gap: 2,
+          justifyContent: "space-around",
+          py: 4, // Increased padding vertically
         }}
       >
         <Typography
-          variant="subtitle2"
+          variant="h6"
           color="primary"
           sx={{
             display: "flex",
             alignItems: "center",
-            gap: 0.5,
+            gap: 1,
           }}
         >
-          <HowToVoteIcon fontSize="small" />
+          <HowToVoteIcon />
           Participation
         </Typography>
 
@@ -60,8 +60,8 @@ export const ParticipationCard: React.FC<ParticipationCardProps> = ({
           <CircularProgress
             variant="determinate"
             value={participationRate * 100}
-            size={120}
-            thickness={3}
+            size={200} // Increased from 120
+            thickness={4} // Increased from 3
             sx={{
               color: theme.palette.primary.main,
               backgroundColor: theme.palette.background.paper,
@@ -79,24 +79,33 @@ export const ParticipationCard: React.FC<ParticipationCardProps> = ({
               flexDirection: "column",
               alignItems: "center",
               justifyContent: "center",
-              width: "75%", // Make the content area smaller than the circle
+              width: "75%",
               margin: "auto",
             }}
           >
             <Typography
-              variant="h4"
+              variant="h3" // Increased from h4
               component="div"
               color="primary"
-              sx={{ lineHeight: 1, mb: 0.5, fontSize: "1.75rem" }}
+              sx={{ lineHeight: 1, mb: 1, fontWeight: "medium" }}
             >
               {(participationRate * 100).toFixed(1)}%
             </Typography>
           </Box>
         </Box>
 
-        <Typography variant="caption" color="secondary" align="center" sx={{ mt: 1 }}>
-          {totalVoters} of {eligibleUsers} users
-        </Typography>
+        <Box sx={{ textAlign: "center" }}>
+          <Typography
+            variant="h6"
+            color="text.primary"
+            sx={{ mb: 1 }}
+          >
+            {totalVoters} of {eligibleUsers}
+          </Typography>
+          <Typography variant="subtitle1" color="text.secondary">
+            eligible users voted
+          </Typography>
+        </Box>
       </CardContent>
     </Card>
   );

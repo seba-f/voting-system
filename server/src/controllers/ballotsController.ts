@@ -579,14 +579,27 @@ export const submitVote = async (req: AuthRequest, res: Response): Promise<void>
         if (!ballot) {
             res.status(404).json({ message: 'Ballot not found, expired, or access denied' });
             return;
-        }        // For multiple choice ballots, expect an array of optionIds
-        // For text input ballots, expect textResponse
+        }        // Extract vote data based on ballot type
         const { optionId, optionIds, textResponse } = req.body;
-        const selectedOptionIds = ballot.ballotType === 'MULTIPLE_CHOICE' ? optionIds : [optionId];
+        const selectedOptionIds = 
+            ballot.ballotType === 'MULTIPLE_CHOICE' || ballot.ballotType === 'RANKED_CHOICE' 
+                ? optionIds 
+                : [optionId];
 
         if (!selectedOptionIds || !Array.isArray(selectedOptionIds) || selectedOptionIds.length === 0) {
             res.status(400).json({ message: 'No options selected' });
             return;
+        }
+
+        // For ranked choice, make sure all options are ranked
+        if (ballot.ballotType === 'RANKED_CHOICE') {
+            const allOptions = await VotingOption.findAll({
+                where: { ballotId }
+            });
+            if (selectedOptionIds.length !== allOptions.length) {
+                res.status(400).json({ message: 'All options must be ranked' });
+                return;
+            }
         }
 
         // Check if user has already voted on this ballot
@@ -597,13 +610,14 @@ export const submitVote = async (req: AuthRequest, res: Response): Promise<void>
             }
         });
 
-        if (existingVotes.length > 0 && ballot.ballotType !== 'MULTIPLE_CHOICE') {
+        const allowMultipleVotes = ballot.ballotType === 'MULTIPLE_CHOICE' || ballot.ballotType === 'RANKED_CHOICE';
+        if (existingVotes.length > 0 && !allowMultipleVotes) {
             res.status(400).json({ message: 'You have already voted on this ballot' });
             return;
         }
 
-        // For multiple choice, clean up existing votes if any
-        if (ballot.ballotType === 'MULTIPLE_CHOICE' && existingVotes.length > 0) {
+        // Clean up existing votes if necessary
+        if (allowMultipleVotes && existingVotes.length > 0) {
             await Vote.destroy({
                 where: {
                     userId: req.user.id,
@@ -636,6 +650,16 @@ export const submitVote = async (req: AuthRequest, res: Response): Promise<void>
                 textResponse: textResponse,
                 timestamp: new Date()
             })];
+        } else if (ballot.ballotType === 'RANKED_CHOICE') {
+            // For ranked choice, create votes with timestamps in order to track rank
+            votes = await Promise.all(selectedOptionIds.map((optionId, index) => 
+                Vote.create({
+                    userId: req.user.id,
+                    ballotId,
+                    optionId,
+                    timestamp: new Date(Date.now() + index) // Add index to timestamp to preserve order
+                })
+            ));
         } else {
             // For other ballot types, create votes without text response
             votes = await Promise.all(selectedOptionIds.map(optionId =>
@@ -1025,11 +1049,37 @@ export const getBallotAnalytics = async (req: AuthRequest, res: Response): Promi
             textResponses = fullVotes.filter(v => v.textResponse).map(v => ({
                 response: v.textResponse
             }));
-        }
-
-        // Calculate choice distribution (for non-text input ballots)
+        }        // Calculate analytics based on ballot type
         let choiceDistribution = {};
-        if (ballot.ballotType !== 'TEXT_INPUT' && ballot.ballotType !== 'RANKED_CHOICE') {
+        let rankDistribution = {};        if (ballot.ballotType === 'RANKED_CHOICE') {
+            // For ranked choice, we need to track rank positions
+            // First, group votes by user to get their rankings
+            const userVotesMap = votes.reduce((acc, vote) => {
+                if (!acc[vote.userId]) {
+                    acc[vote.userId] = [];
+                }
+                acc[vote.userId].push(vote);
+                return acc;
+            }, {} as { [userId: string]: typeof votes });
+
+            // Then calculate rank distribution from each user's votes
+            rankDistribution = Object.values(userVotesMap).reduce((acc, userVotes) => {
+                // Sort by timestamp to determine rank (earlier vote = higher rank)
+                const sortedVotes = userVotes.sort((a, b) => 
+                    new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
+                );
+
+                // Record the rank for each option
+                sortedVotes.forEach((v, idx) => {
+                    if (!acc[v.optionId]) {
+                        acc[v.optionId] = {};
+                    }
+                    const rank = idx + 1;
+                    acc[v.optionId][rank] = (acc[v.optionId][rank] || 0) + 1;
+                });
+                return acc;
+            }, {});
+        } else if (ballot.ballotType !== 'TEXT_INPUT') {
             choiceDistribution = votes.reduce((acc, vote) => {
                 acc[vote.optionId] = (acc[vote.optionId] || 0) + 1;
                 return acc;
@@ -1041,8 +1091,7 @@ export const getBallotAnalytics = async (req: AuthRequest, res: Response): Promi
             const timestamp = new Date(vote.timestamp);
             const hour = timestamp.getHours();
             
-            // For multiple choice, ensure we only count each user once per hour
-            if (ballot.ballotType === 'MULTIPLE_CHOICE') {
+            if (ballot.ballotType === 'MULTIPLE_CHOICE' || ballot.ballotType === 'RANKED_CHOICE') {
                 // Create a unique key for user and hour
                 const userHourKey = `${vote.userId}-${hour}`;
                 if (!acc.userTracking[userHourKey]) {
@@ -1053,7 +1102,7 @@ export const getBallotAnalytics = async (req: AuthRequest, res: Response): Promi
                 acc.distribution[hour] = (acc.distribution[hour] || 0) + 1;
             }
             return acc;
-        }, { distribution: {}, userTracking: {} }).distribution;        // Format the response with full analytics
+        }, { distribution: {}, userTracking: {} }).distribution;// Format the response with full analytics
         const baseAnalytics = {
             totalVoters: uniqueVoters,
             totalVotes: votes.length,
@@ -1063,22 +1112,34 @@ export const getBallotAnalytics = async (req: AuthRequest, res: Response): Promi
                 hour,
                 votes: hourlyDistribution[hour] || 0
             }))
-        };
-
-        // Add type-specific data
-        const analytics = ballot.ballotType === 'TEXT_INPUT'
-            ? {
-                ...baseAnalytics,
-                textResponses
+        };        // Add type-specific data
+        const analytics = (() => {
+            if (ballot.ballotType === 'TEXT_INPUT') {
+                return {
+                    ...baseAnalytics,
+                    textResponses
+                };
+            } else if (ballot.ballotType === 'RANKED_CHOICE') {
+                return {
+                    ...baseAnalytics,
+                    rankDistribution,
+                    choiceDistribution: ballot.VotingOptions.map(option => ({
+                        optionId: option.id,
+                        title: option.title,
+                        votes: Object.values(rankDistribution[option.id] || {}).reduce((sum: number, count) => sum + Number(count), 0)
+                    }))
+                };
+            } else {
+                return {
+                    ...baseAnalytics,
+                    choiceDistribution: ballot.VotingOptions.map(option => ({
+                        optionId: option.id,
+                        title: option.title,
+                        votes: choiceDistribution[option.id] || 0
+                    }))
+                };
             }
-            : {
-                ...baseAnalytics,
-                choiceDistribution: ballot.VotingOptions.map(option => ({
-                    optionId: option.id,
-                    title: option.title,
-                    votes: choiceDistribution[option.id] || 0
-                }))
-            }
+        })();
 
         res.json(analytics);
     } catch (error: any) {

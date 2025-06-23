@@ -1,15 +1,6 @@
-import React from 'react';
-import { Box, Typography } from '@mui/material';
+import React from "react";
+import { SingleChoiceForm } from "./SingleChoiceForm";
 
 export const RankedChoiceForm = () => {
-    return (
-        <Box>
-            <Typography variant="h6">
-                Ranked Choice Ballot Form
-            </Typography>
-            <Typography color="textSecondary">
-                Form implementation coming soon...
-            </Typography>
-        </Box>
-    );
+    return <SingleChoiceForm ballotType="RANKED_CHOICE" />;
 };

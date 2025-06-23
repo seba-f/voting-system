@@ -214,7 +214,7 @@ const ViewBallotAdmin: React.FC = () => {
 	}
 
 	return (
-		<Box sx={{ p: 3 }}>			<BallotHeader
+		<Box sx={{ p: 3, pb:0 }}>			<BallotHeader
 				title={ballot.title}
 				status={ballot.status}
 				isAdmin={user?.id === ballot.adminId}
@@ -288,11 +288,11 @@ const ViewBallotAdmin: React.FC = () => {
 					aria-labelledby="ballot-tab-1"
 					sx={{ mt: 3 }}
 				>
-					{activeTab === 1 && (
-						<BallotAnalytics
+					{activeTab === 1 && (						<BallotAnalytics
 							analytics={analytics}
 							analyticsLoading={analyticsLoading}
 							ballotType={ballot.type}
+							options={ballot.type === 'RANKED_CHOICE' ? ballot.options : undefined}
 						/>
 					)}
 				</Box>

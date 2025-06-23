@@ -53,11 +53,21 @@ export const Dashboard: React.FC = () => {
         });
         
         try {
-            const cacheKey = `ballots-${isAdmin() ? 'admin' : 'user'}-${user.id}`;
+            // For admin users, always fetch fresh data
+            if (isAdmin()) {
+                const endpoint = '/ballots/active';
+                console.log('[Dashboard] Admin user - fetching fresh data from:', endpoint);
+                const response = await API.get(endpoint);
+                setBallots(response.data || []);
+                setLoading(false);
+                return;
+            }
+
+            // For regular users, use caching logic
+            const cacheKey = `ballots-user-${user.id}`;
             const cachedData = sessionStorage.getItem(cacheKey);
             const cachedTimestamp = sessionStorage.getItem(cacheKey + '-timestamp');
             
-            // Check if we just submitted a vote or if cached data is fresh
             const voteJustSubmitted = location.state?.voteJustSubmitted;
             if (!voteJustSubmitted && cachedData && cachedTimestamp) {
                 const age = Date.now() - parseInt(cachedTimestamp);
@@ -69,23 +79,20 @@ export const Dashboard: React.FC = () => {
                 }
             }
 
-            const endpoint = isAdmin() ? '/ballots/active' : '/ballots/active-with-status';
+            const endpoint = '/ballots/active-with-status';
             console.log('[Dashboard] Fetching ballots from endpoint:', endpoint);
 
             const response = await API.get(endpoint);
-            const ballotsToShow = isAdmin() 
-                ? response.data 
-                : (response.data as BallotResponse).unvoted;
+            const ballotsToShow = (response.data as BallotResponse).unvoted;
 
             console.log('[Dashboard] Processing ballots:', {
                 total: ballotsToShow?.length || 0,
-                isAdmin: isAdmin(),
                 dataType: Array.isArray(ballotsToShow) ? 'array' : typeof ballotsToShow
             });
             
             setBallots(ballotsToShow || []);
             
-            // Cache the new data
+            // Cache the new data only for regular users
             sessionStorage.setItem(cacheKey, JSON.stringify(ballotsToShow));
             sessionStorage.setItem(cacheKey + '-timestamp', Date.now().toString());
             setError(null);
@@ -98,7 +105,7 @@ export const Dashboard: React.FC = () => {
         } finally {
             setLoading(false);
         }
-    }, [isAdmin, user, location.state?.voteJustSubmitted]);
+    }, [user, isAdmin, location.state?.voteJustSubmitted]);
 
     useEffect(() => {
         fetchBallots();

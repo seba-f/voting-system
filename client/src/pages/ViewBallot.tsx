@@ -8,6 +8,7 @@ import { YesNoVoteForm } from './voteForms/YesNoVoteForm';
 import { MultipleChoiceVoteForm } from './voteForms/MultipleChoiceVoteForm';
 import { TextInputVoteForm } from './voteForms/TextInputVoteForm';
 import { LinearChoiceVoteForm } from './voteForms/LinearChoiceVoteForm';
+import { RankedChoiceVoteForm } from './voteForms/RankedChoiceVoteForm';
 import { BallotResults } from '../components/BallotResults';
 
 import { Ballot, BallotType } from '../types/ballot';
@@ -144,9 +145,25 @@ const ViewBallot: React.FC = () => {
         userVotes: ballot.type === 'MULTIPLE_CHOICE' ? userVotes : undefined
     });
 
+    const getStatusMessage = () => {
+        if (hasVoted) {
+            return "You've already voted on this ballot";
+        }
+        if (ballot.status === 'Suspended') {
+            return "This ballot has been suspended by an administrator";
+        }
+        return "This ballot has ended";
+    };
+
+    const getStatusSeverity = () => {
+        if (hasVoted) return "info";
+        if (ballot.status === 'Suspended') return "warning";
+        return "info";
+    };
+
     const statusAlert = isReadOnly ? (
         <Alert 
-            severity={userVote ? "info" : "warning"}
+            severity={getStatusSeverity()}
             sx={{
                 '& .MuiAlert-message': {
                     padding: '4px 0',
@@ -155,26 +172,34 @@ const ViewBallot: React.FC = () => {
                     padding: '4px 0',
                 }
             }}
-        >            {hasVoted 
-                ? "You've already voted on this ballot" 
-                : "This ballot is no longer active"
-            }
+        >
+            {getStatusMessage()}
         </Alert>
     ) : null;
 
     const renderVoteForm = () => {
         if (!ballot) return null;
 
+        // Check for expired, voted, or suspended status
         const isExpired = new Date(ballot.endDate) < new Date();
-        const isReadOnly = isExpired || userVote !== null;
+        const isFormReadOnly = isExpired || userVote !== null || ballot.status === 'Suspended';
 
         switch (ballot.type) {
+            case 'RANKED_CHOICE':
+                return (
+                    <RankedChoiceVoteForm
+                        ballot={ballot}
+                        onSubmit={!isFormReadOnly ? handleVoteSubmit : undefined}
+                        readOnly={isFormReadOnly}
+                        selectedOptionIds={userVote ? [userVote.optionId] : []}
+                    />
+                );
             case 'SINGLE_CHOICE':
                 return (
                     <SingleChoiceVoteForm
                         ballot={ballot}
-                        onSubmit={!isReadOnly ? handleVoteSubmit : undefined}
-                        readOnly={isReadOnly}
+                        onSubmit={!isFormReadOnly ? handleVoteSubmit : undefined}
+                        readOnly={isFormReadOnly}
                         selectedOptionId={userVote?.optionId}
                     />
                 );
@@ -182,8 +207,8 @@ const ViewBallot: React.FC = () => {
                 return (
                     <YesNoVoteForm
                         ballot={ballot}
-                        onSubmit={!isReadOnly ? handleVoteSubmit : undefined}
-                        readOnly={isReadOnly}
+                        onSubmit={!isFormReadOnly ? handleVoteSubmit : undefined}
+                        readOnly={isFormReadOnly}
                         selectedOptionId={userVote?.optionId}
                     />
                 );
@@ -191,8 +216,8 @@ const ViewBallot: React.FC = () => {
                 return (
                     <MultipleChoiceVoteForm
                         ballot={ballot}
-                        onSubmit={!isReadOnly ? handleVoteSubmit : undefined}
-                        readOnly={isReadOnly}
+                        onSubmit={!isFormReadOnly ? handleVoteSubmit : undefined}
+                        readOnly={isFormReadOnly}
                         selectedOptionIds={userVotes.map(v => v.optionId)}
                     />
                 );
@@ -200,8 +225,8 @@ const ViewBallot: React.FC = () => {
                 return (
                     <TextInputVoteForm
                         ballot={ballot}
-                        onSubmit={!isReadOnly ? handleVoteSubmit : undefined}
-                        readOnly={isReadOnly}
+                        onSubmit={!isFormReadOnly ? handleVoteSubmit : undefined}
+                        readOnly={isFormReadOnly}
                         selectedOptionId={userVote?.optionId}
                         existingResponse={userVote?.textResponse}
                     />                );
@@ -209,8 +234,8 @@ const ViewBallot: React.FC = () => {
                 return (
                     <LinearChoiceVoteForm
                         ballot={ballot}
-                        onSubmit={!isReadOnly ? handleVoteSubmit : undefined}
-                        readOnly={isReadOnly}
+                        onSubmit={!isFormReadOnly ? handleVoteSubmit : undefined}
+                        readOnly={isFormReadOnly}
                         selectedOptionId={userVote?.optionId}
                     />
                 );

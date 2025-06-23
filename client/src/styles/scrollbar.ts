@@ -23,7 +23,7 @@ export const scrollbarStyle: SxProps = {
 export const contentContainerStyle: SxProps = {
     display: "flex",
     flexDirection: "column",
-    height: "calc(100vh - 112px)", // Subtracting header height and padding
+    height: "calc(100vh - 80px)", // Subtracting header height and padding
     overflow: "hidden",
 };
 
