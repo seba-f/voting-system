@@ -259,20 +259,16 @@ const ViewBallot: React.FC = () => {
             default:
                 return <Typography>Unsupported ballot type</Typography>;
         }
-    };
-
-    const renderAnalytics = () => {
+    };    const renderAnalytics = () => {
         if (!analytics) return null;
 
         return (
             <BallotResultsSummary
                 analytics={analytics}
-                ballotId={ballot.id}
-                isAdmin={isAdmin}
-                sx={{ mt: 3 }}
+                ballotType={ballot.type}
             />
         );
-    };    return (
+    };return (
         <Box sx={contentContainerStyle}>
             <PageHeader 
                 title={shouldShowResults ? ballot.title : "View Ballot"}

@@ -10,11 +10,16 @@ import {
     useTheme,
     Paper,
     LinearProgress,
+    Tooltip,
+    IconButton,
 } from '@mui/material';
 import { ParticipationCard } from './ParticipationCard';
 import { Bar } from 'react-chartjs-2';
-import { EmojiEvents as TrophyIcon } from '@mui/icons-material';
-import { PersonOutline as PersonIcon } from '@mui/icons-material';
+import { 
+    EmojiEvents as TrophyIcon,
+    PersonOutline as PersonIcon,
+    InfoOutlined as InfoIcon,
+} from '@mui/icons-material';
 
 interface Choice {
     optionId: number;
@@ -425,10 +430,38 @@ export const BallotResultsSummary: React.FC<BallotResultsSummaryProps> = ({
             {hasTopVotes && (
                 <Card elevation={2}>
                     <CardContent>
-                        <Typography variant="h6" gutterBottom color="primary" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
                             <TrophyIcon sx={{ color: PlaceColors[1] }} />
-                            {ballotType === 'RANKED_CHOICE' ? 'Top Choices (Borda Count)' : 'Top Choices'}
-                        </Typography>
+                            <Typography variant="h6" color="primary" sx={{ flex: 1 }}>
+                                Top Choices{ballotType === 'RANKED_CHOICE' && ' by Score'}
+                            </Typography>
+                            {ballotType === 'RANKED_CHOICE' && (
+                                <Tooltip 
+                                    title={
+                                        <Typography variant="body2" sx={{ p: 0.5 }}>
+                                            Borda Count: A voting method where voters rank options in order of preference.
+                                            Each option receives points based on its ranking position - if there are n options,
+                                            a first-place vote is worth n points, second place n-1 points, and so on.
+                                            The options with the highest total scores are considered most preferred overall.
+                                        </Typography>
+                                    }
+                                    arrow
+                                    placement="top"
+                                >
+                                    <IconButton 
+                                        size="small" 
+                                        sx={{ 
+                                            color: theme.palette.text.secondary,
+                                            '&:hover': {
+                                                color: theme.palette.primary.main,
+                                            }
+                                        }}
+                                    >
+                                        <InfoIcon fontSize="small" />
+                                    </IconButton>
+                                </Tooltip>
+                            )}
+                        </Box>
                         <Stack spacing={2}>
                             {(() => {
                                 // Group choices by place to handle ties

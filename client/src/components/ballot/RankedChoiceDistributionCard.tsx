@@ -13,9 +13,11 @@ import {
     TableCell,
     Paper,
     Tooltip,
+    IconButton,
 } from '@mui/material';
 import { Bar } from 'react-chartjs-2';
 import { Option } from '../../types/ballot';
+import { InfoOutlined as InfoIcon } from '@mui/icons-material';
 
 interface RankedChoiceDistributionCardProps {
     options: Option[];
@@ -32,7 +34,9 @@ export const RankedChoiceDistributionCard: React.FC<RankedChoiceDistributionCard
     rankDistribution,
     totalVotes,
 }) => {
-    const theme = useTheme();    // Generate colors that intuitively represent rank positions
+    const theme = useTheme();
+
+    // Generate colors that intuitively represent rank positions
     const rankColors = Array.from({ length: options.length }, (_, i) => {
         // Calculate position in the sequence (0 to 1)
         const position = i / (options.length - 1);
@@ -83,7 +87,7 @@ export const RankedChoiceDistributionCard: React.FC<RankedChoiceDistributionCard
         datasets,
     };
 
-    const    chartOptions = {
+    const chartOptions = {
         responsive: true,
         maintainAspectRatio: false,
         plugins: {
@@ -152,24 +156,44 @@ export const RankedChoiceDistributionCard: React.FC<RankedChoiceDistributionCard
                     <Bar data={chartData} options={chartOptions} />
                 </Box>
 
-                {/* Borda Count Table */}
+                {/* Borda Count Results */}
                 <Box sx={{ mt: 4 }}>
-                    <Typography variant="h6" gutterBottom color="primary">
-                        Borda Count Results
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary" paragraph>
-                        The Borda count is a positional voting method where voters rank options in order of preference. 
-                        Each rank position is assigned points: the last rank gets 1 point, the second-to-last gets 2 points, 
-                        and so on. The option with the highest total score wins.
-                    </Typography>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
+                        <Typography variant="h6" color="primary" sx={{ flex: 1 }}>
+                            Results by Score
+                        </Typography>
+                        <Tooltip 
+                            title={
+                                <Typography variant="body2" sx={{ p: 0.5 }}>
+                                    Borda Count: A voting method where voters rank options in order of preference.
+                                    Each rank position is assigned points: the last rank gets 1 point, the second-to-last gets 2 points,
+                                    and so on. The option with the highest total score is considered most preferred overall.
+                                </Typography>
+                            }
+                            arrow
+                            placement="top"
+                        >
+                            <IconButton 
+                                size="small" 
+                                sx={{ 
+                                    color: theme.palette.text.secondary,
+                                    '&:hover': {
+                                        color: theme.palette.primary.main,
+                                    }
+                                }}
+                            >
+                                <InfoIcon fontSize="small" />
+                            </IconButton>
+                        </Tooltip>
+                    </Box>
                     <TableContainer component={Paper} variant="outlined">
                         <Table size="small">
                             <TableHead>
                                 <TableRow>
                                     <TableCell>Rank</TableCell>
                                     <TableCell>Option</TableCell>
-                                    <TableCell align="right">Borda Score</TableCell>
-                                    <TableCell align="right">Normalized Score (%)</TableCell>
+                                    <TableCell align="right">Score</TableCell>
+                                    <TableCell align="right">Relative Score (%)</TableCell>
                                 </TableRow>
                             </TableHead>
                             <TableBody>
