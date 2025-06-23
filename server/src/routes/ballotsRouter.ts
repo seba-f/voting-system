@@ -5,19 +5,31 @@ import {
     getActiveBallotsForCategory,
     getPastBallotsForCategory,
     getSuspendedBallotsForCategory,
+    getBallot,
     getActiveBallotsForUser,
     getUnvotedBallots,
-    getBallot,
-    getBallotAnalytics,
+    getVotedBallots
+} from '../controllers/ballot/ballotsController';
+
+import {
     submitVote,
-    getActiveBallotsWithVoteStatus,
-    getPastBallotsWithVoteStatus,
-    getVotedBallots,
-    getUserVote,
+    getUserVote
+} from '../controllers/ballot/ballotVotingController';
+
+import {
+    getBallotAnalytics
+} from '../controllers/ballot/ballotAnalyticsController';
+
+import {
     suspendBallot,
     unsuspendBallot,
     endBallotEarly
-} from '../controllers/ballotsController';
+} from '../controllers/ballot/ballotStateController';
+
+import {
+    getActiveBallotsWithVoteStatus,
+    getPastBallotsWithVoteStatus
+} from '../controllers/ballot/ballotStatusController';
 
 const router = express.Router();
 
