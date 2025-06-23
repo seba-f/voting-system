@@ -30,6 +30,8 @@ interface BallotDetailsProps {
   type: string;
   category: Category | null;
   endDate: string;
+  status: string;
+  timeLeft?: number | null;
 }
 
 export const BallotDetails: React.FC<BallotDetailsProps> = ({
@@ -37,6 +39,8 @@ export const BallotDetails: React.FC<BallotDetailsProps> = ({
   type,
   category,
   endDate,
+  status,
+  timeLeft,
 }) => {
   return (
     <Stack spacing={3}>
@@ -136,12 +140,20 @@ export const BallotDetails: React.FC<BallotDetailsProps> = ({
           }}
         >
           <AccessTimeIcon sx={{ mr: 1 }} />
-          End date
+          {status === "Suspended" ? "Time remaining after resume" : "End date"}
         </Typography>
         <Stack spacing={2}>
-          <Typography variant="body1">
-            {format(new Date(endDate), "PPP")}
-          </Typography>
+          {status === "Suspended" && timeLeft ? (
+            <Typography variant="body1">
+              {Math.floor(timeLeft / 86400)} days,{" "}
+              {Math.floor((timeLeft % 86400) / 3600)} hours,{" "}
+              {Math.floor((timeLeft % 3600) / 60)} minutes
+            </Typography>
+          ) : (
+            <Typography variant="body1">
+              {format(new Date(endDate), "PPP")}
+            </Typography>
+          )}
         </Stack>
       </Box>
     </Stack>

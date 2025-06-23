@@ -100,6 +100,7 @@ interface Ballot {
 	roles: Role[];
 	categoryId: number;
 	adminId: number;
+	timeLeft?: number | null;
 }
 
 interface Analytics {
@@ -266,6 +267,8 @@ const ViewBallotAdmin: React.FC = () => {
 									type={ballot.type}
 									category={category}
 									endDate={ballot.endDate}
+									status={ballot.status}
+									timeLeft={ballot.timeLeft}
 								/>
 							</Box>
 

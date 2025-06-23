@@ -17,7 +17,7 @@ class Ballot extends Model{
     public categoryId:number;
     public limitDate:Date;
     public isSuspended:boolean;
-    public suspensionDuration:number;
+    public timeLeft:number | null;
     public adminId:number;
     public ballotType: BallotType;
     public VotingOptions?: any[]; // for TypeScript to recognize the included options
@@ -49,9 +49,9 @@ Ballot.init({
         type:DataTypes.BOOLEAN,
         allowNull:false
     },
-    suspensionDuration:{
+    timeLeft:{
         type:DataTypes.INTEGER,
-        allowNull:false
+        allowNull:true
     },
     adminId:{
         type:DataTypes.INTEGER,

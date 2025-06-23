@@ -13,6 +13,7 @@ import {
     MenuItem,
     useTheme,
     Grid,
+    Divider,
 } from "@mui/material";
 import { DateTimePicker } from "@mui/x-date-pickers/DateTimePicker";
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
@@ -147,7 +148,7 @@ export const LinearChoiceForm = () => {
     }
 
     return (        <Box component="form" onSubmit={handleSubmit} sx={{ width: "100%" }}>
-            <Paper elevation={2} sx={{ p: 2.5, mt: 2 }}>
+            <Paper elevation={0} sx={{ p: 2.5, mt: 2, bgcolor:"background.default" }}>
                 <Stack spacing={2.5}>
                     <TextField
                         size="small"
@@ -279,6 +280,8 @@ export const LinearChoiceForm = () => {
                             {formError}
                         </Typography>
                     )}
+                    
+                    <Divider />
 
                     <Button
                         type="submit"

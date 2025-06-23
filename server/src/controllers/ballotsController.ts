@@ -46,9 +46,7 @@ export const createBallot = async (req: AuthRequest, res: Response): Promise<voi
         if (!req.user) {
             res.status(401).json({ message: 'User not authenticated' });
             return;
-        }
-
-        // Create the ballot
+        }        // Create the ballot
         const ballot = await Ballot.create({
             title,
             description,
@@ -57,8 +55,10 @@ export const createBallot = async (req: AuthRequest, res: Response): Promise<voi
             ballotType,
             adminId: req.user.id,
             isSuspended: false,
-            suspensionDuration: 0
-        });        // Handle voting options based on ballot type
+            timeLeft: null
+        });
+
+        // Handle voting options based on ballot type
         if (ballotType === 'TEXT_INPUT') {
             // For text input ballots, create a single option
             await VotingOption.create({
@@ -1158,15 +1158,24 @@ export const suspendBallot = async (req: AuthRequest, res: Response): Promise<vo
             return;
         }
 
+        const now = new Date();
         const endDate = new Date(ballot.limitDate);
-        if (endDate < new Date()) {
+        if (endDate < now) {
             res.status(400).json({ message: 'Cannot suspend an ended ballot' });
             return;
         }
 
+        // Calculate time left in milliseconds
+        const timeLeftMs = endDate.getTime() - now.getTime();
+        
+        // Set a distant future date (e.g., 100 years from now)
+        const distantFuture = new Date();
+        distantFuture.setFullYear(distantFuture.getFullYear() + 100);
+
         await ballot.update({
             isSuspended: true,
-            suspensionDuration: ballot.suspensionDuration || 0
+            timeLeft: Math.floor(timeLeftMs / 1000), // Store in seconds
+            limitDate: distantFuture
         });
 
         const updatedBallot = await Ballot.findByPk(ballotId);
@@ -1245,15 +1254,19 @@ export const unsuspendBallot = async (req: AuthRequest, res: Response): Promise<
             return;
         }
 
-        // Check if ballot would be ended
-        const endDate = new Date(ballot.limitDate);
-        if (endDate < new Date()) {
-            res.status(400).json({ message: 'Cannot unsuspend a ballot that has passed its end date' });
+        if (ballot.timeLeft === null) {
+            res.status(400).json({ message: 'Cannot unsuspend ballot: no time left information available' });
             return;
         }
 
+        // Calculate new end date based on remaining time
+        const now = new Date();
+        const newEndDate = new Date(now.getTime() + (ballot.timeLeft * 1000));
+
         await ballot.update({
-            isSuspended: false
+            isSuspended: false,
+            timeLeft: null,
+            limitDate: newEndDate
         });
 
         const updatedBallot = await Ballot.findByPk(ballotId);

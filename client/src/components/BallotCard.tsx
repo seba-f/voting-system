@@ -14,6 +14,7 @@ interface BallotCardProps {
 		endDate: Date;
 		status: string;
 		type: string;
+		timeLeft?: number | null;
 	};
 	hasVoted?: boolean;
 }
@@ -58,10 +59,21 @@ export const BallotCard = React.memo((props: BallotCardProps) => {
 					/>
 				</Box>
 				<Typography variant="body2" color="text.secondary">
-					Ends:{" "}
-					{ballot.endDate
-						? format(new Date(ballot.endDate), "PPP 'at' p")
-						: "No end date set"}
+					{ballot.status === "Suspended" && ballot.timeLeft ? (
+						<>
+							Time remaining:{" "}
+							{Math.floor(ballot.timeLeft / 86400)}d{" "}
+							{Math.floor((ballot.timeLeft % 86400) / 3600)}h{" "}
+							{Math.floor((ballot.timeLeft % 3600) / 60)}m
+						</>
+					) : (
+						<>
+							Ends:{" "}
+							{ballot.endDate
+								? format(new Date(ballot.endDate), "PPP 'at' p")
+								: "No end date set"}
+						</>
+					)}
 				</Typography>
 				<Box sx={{ mt: 2 }}>
 					<Button
