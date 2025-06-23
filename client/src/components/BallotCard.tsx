@@ -79,7 +79,7 @@ export const BallotCard = React.memo((props: BallotCardProps) => {
 				<Box sx={{ mt: 2 }}>
 					<Button
 						variant="contained"
-						color="primary"
+						color="secondary"
 						onClick={handleViewBallot}
 					>
 						View Ballot

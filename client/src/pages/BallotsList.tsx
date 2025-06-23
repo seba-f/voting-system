@@ -353,6 +353,7 @@ export const BallotsList = () => {
 					display: "flex",
 					flexDirection: "column",
 					overflow: "hidden",
+					background:"transparent"
 				}}
 			>
 				<Tabs

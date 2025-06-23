@@ -110,7 +110,7 @@ export const ManageBallots = () => {
 					</Button>
 				}
 			/>
-			<Paper sx={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+			<Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', background: 'transparent', boxShadow: 'none', p: 0 }}>
 				<Tabs
 					value={activeTab}
 					onChange={handleTabChange}
@@ -169,7 +169,7 @@ export const ManageBallots = () => {
 						)}
 					</TabPanel>
 				</Box>
-			</Paper>
+			</Box>
 		</Box>
 	);
 };

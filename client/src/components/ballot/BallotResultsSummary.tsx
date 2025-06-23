@@ -384,9 +384,9 @@ export const BallotResultsSummary: React.FC<BallotResultsSummaryProps> = ({
     }
 
     return (
-        <Box sx={{ p: 3, display: 'flex', flexDirection: 'column', gap: 3 }}>
+        <Box sx={{ p: 3, display: 'flex', flexDirection: 'column', gap: 3}}>
             {/* Grid with participation and distribution */}
-            <Box sx={{ display: 'grid', gap: 3, gridTemplateColumns: { xs: '1fr', md: '300px 1fr' } }}>
+            <Box sx={{ display: 'grid', gap: 3, gridTemplateColumns: { xs: '1fr', md: '300px 1fr' }, background: 'transparent' }}>
                 {/* Participation card */}
                 <ParticipationCard
                     participationRate={analytics.participationRate}

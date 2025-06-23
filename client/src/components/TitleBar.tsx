@@ -49,7 +49,7 @@ const TitleBar: React.FC = () => {
         <Box
             sx={{
                 height: 32,
-                bgcolor: theme.palette.primary.main,
+                bgcolor: theme.palette.mode === 'dark' ? theme.palette.background.paper : theme.palette.primary.main,
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'space-between',
@@ -73,13 +73,14 @@ const TitleBar: React.FC = () => {
                     onClick={handleBack}
                     sx={{ 
                         borderRadius: 0,
-                        color: 'white',
+                        bgcolor: theme.palette.mode === 'dark' ? theme.palette.background.paper : theme.palette.primary.main,
+                        color: theme.palette.mode === 'dark' ? theme.palette.primary.main : theme.palette.primary.contrastText,
                         '&:hover': {
-                            bgcolor: theme.palette.secondary.main,
-                            color: theme.palette.secondary.contrastText
+                            bgcolor: theme.palette.mode === 'dark' ? theme.palette.primary.main : theme.palette.primary.light,
+                            color: theme.palette.mode === 'dark' ? theme.palette.background.paper : theme.palette.secondary.contrastText
                         },
                         '&.Mui-disabled': {
-                            color: 'rgba(255,255,255,0.3)'
+                            color: theme.palette.action.disabled
                         }
                     }}
                 >
@@ -90,13 +91,14 @@ const TitleBar: React.FC = () => {
                     onClick={handleForward}
                     sx={{ 
                         borderRadius: 0,
-                        color: 'white',
+                        bgcolor: theme.palette.mode === 'dark' ? theme.palette.background.paper : theme.palette.primary.main,
+                        color: theme.palette.mode === 'dark' ? theme.palette.primary.main : theme.palette.primary.contrastText,
                         '&:hover': {
-                            bgcolor: theme.palette.secondary.main,
-                            color: theme.palette.secondary.contrastText
+                            bgcolor: theme.palette.mode === 'dark' ? theme.palette.primary.main : theme.palette.primary.light,
+                            color: theme.palette.mode === 'dark' ? theme.palette.background.paper : theme.palette.secondary.contrastText
                         },
                         '&.Mui-disabled': {
-                            color: 'rgba(255,255,255,0.3)'
+                            color: theme.palette.action.disabled
                         }
                     }}
                 >
@@ -116,10 +118,11 @@ const TitleBar: React.FC = () => {
                     onClick={handleMinimize}
                     sx={{ 
                         borderRadius: 0,
-                        color: 'white',
+                        bgcolor: theme.palette.mode === 'dark' ? theme.palette.background.paper : theme.palette.primary.main,
+                        color: theme.palette.mode === 'dark' ? theme.palette.primary.main : theme.palette.primary.contrastText,
                         '&:hover': {
-                            bgcolor: theme.palette.secondary.main,
-                            color: theme.palette.secondary.contrastText
+                            bgcolor: theme.palette.mode === 'dark' ? theme.palette.primary.main : theme.palette.primary.light,
+                            color: theme.palette.mode === 'dark' ? theme.palette.background.paper : theme.palette.secondary.contrastText
                         }
                     }}
                 >
@@ -130,10 +133,11 @@ const TitleBar: React.FC = () => {
                     onClick={handleMaximize}
                     sx={{ 
                         borderRadius: 0,
-                        color: 'white',
+                       bgcolor: theme.palette.mode === 'dark' ? theme.palette.background.paper : theme.palette.primary.main,
+                        color: theme.palette.mode === 'dark' ? theme.palette.primary.main : theme.palette.primary.contrastText,
                         '&:hover': {
-                            bgcolor: theme.palette.secondary.main,
-                            color: theme.palette.secondary.contrastText
+                            bgcolor: theme.palette.mode === 'dark' ? theme.palette.primary.main : theme.palette.primary.light,
+                            color: theme.palette.mode === 'dark' ? theme.palette.background.paper : theme.palette.secondary.contrastText
                         }
                     }}
                 >
@@ -144,7 +148,8 @@ const TitleBar: React.FC = () => {
                     onClick={handleClose}
                     sx={{ 
                         borderRadius: 0,
-                        color: 'white',
+                        bgcolor: theme.palette.mode === 'dark' ? theme.palette.background.paper : theme.palette.primary.main,
+                        color: theme.palette.mode === 'dark' ? theme.palette.primary.main : theme.palette.primary.contrastText,
                         '&:hover': {
                             bgcolor: 'error.main',
                             color: 'white'

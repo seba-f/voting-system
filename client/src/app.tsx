@@ -59,59 +59,67 @@ const AppLayout: React.FC<AppLayoutProps> = ({ isDarkMode, onThemeToggle }) => {
 
 // root application component with theme and routing setup
 const App: React.FC = () => {
-	const [isDarkMode, setIsDarkMode] = useState(false);
+    // Read theme preference from localStorage, default to false (light)
+    const [isDarkMode, setIsDarkMode] = useState(() => {
+        const stored = localStorage.getItem("theme");
+        return stored === "dark";
+    });
 
-	const toggleTheme = () => {
-		setIsDarkMode(!isDarkMode);
-	};
+    const toggleTheme = () => {
+        setIsDarkMode((prev) => {
+            const next = !prev;
+            localStorage.setItem("theme", next ? "dark" : "light");
+            return next;
+        });
+    };
 
-	return (
-		<ThemeProvider theme={isDarkMode ? darkTheme : lightTheme}>
-			<CssBaseline />
-			<AlertProvider>
-				<AuthProvider>
-					<Router>
-						<Routes>
-							{/* Public route - no navbar */}
-							<Route path="/login" element={<LoginPage />} />
+    return (
+        <ThemeProvider theme={isDarkMode ? darkTheme : lightTheme}>
+            <CssBaseline />
+            <AlertProvider>
+                <AuthProvider>
+                    <Router>
+                        <Routes>
+                            {/* Public route - no navbar */}
+                            <Route path="/login" element={<LoginPage />} />
 
-							{/* Protected routes - with navbar */}
-							<Route
-								element={
-									<ProtectedRoute>
-										<AppLayout
-											isDarkMode={isDarkMode}
-											onThemeToggle={toggleTheme}
-										/>
-									</ProtectedRoute>
-								}
-							>
-								<Route index element={<Navigate to="/dashboard" replace />} />
-								<Route path="/dashboard" element={<Dashboard />} />
-								<Route path="/ballot/:id" element={<ViewBallot />} />
-								<Route path="/ballots" element={<BallotsList />} />
-								<Route
-									path="/admin/*"
-									element={
-										<ProtectedRoute requireAdmin>
-											<Routes>
-												<Route path="users" element={<UsersList />} />
-												<Route path="users/new" element={<NewUserPage />} />
+                            {/* Protected routes - with navbar */}
+                            <Route
+                                element={
+                                    <ProtectedRoute>
+                                        <AppLayout
+                                            isDarkMode={isDarkMode}
+                                            onThemeToggle={toggleTheme}
+                                        />
+                                    </ProtectedRoute>
+                                }
+                            >
+                                <Route index element={<Navigate to="/dashboard" replace />} />
+                                <Route path="/dashboard" element={<Dashboard />} />
+                                <Route path="/ballot/:id" element={<ViewBallot />} />
+                                <Route path="/ballots" element={<BallotsList />} />
+                                <Route
+                                    path="/admin/*"
+                                    element={
+                                        <ProtectedRoute requireAdmin>
+                                            <Routes>
+                                                <Route path="users" element={<UsersList />} />
+                                                <Route path="users/new" element={<NewUserPage />} />
                                                 <Route path="categories" element={<CategoriesList />} />
                                                 <Route path="ballots" element={<BallotsList />} />
                                                 <Route path="ballots/new" element={<CreateBallot />} />
                                                 <Route path="ballot/:id" element={<ViewBallotAdmin />} />
-											</Routes>
-										</ProtectedRoute>
-									}
-								/>
-							</Route>
-						</Routes>
-					</Router>{" "}
-				</AuthProvider>
-			</AlertProvider>
-		</ThemeProvider>
-	);
+                                            </Routes>
+                                        </ProtectedRoute>
+                                    }
+                                />
+                            </Route>
+                        </Routes>
+                    </Router>{" "}
+                </AuthProvider>
+            </AlertProvider>
+        </ThemeProvider>
+    );
 };
 
 export default App;
