@@ -10,15 +10,20 @@ import { TextInputVoteForm } from './voteForms/TextInputVoteForm';
 import { LinearChoiceVoteForm } from './voteForms/LinearChoiceVoteForm';
 import { RankedChoiceVoteForm } from './voteForms/RankedChoiceVoteForm';
 import { BallotResults } from '../components/BallotResults';
+import { BallotResultsSummary } from '../components/ballot/BallotResultsSummary';
+import { useAuth } from '../auth/AuthContext';
+import { contentContainerStyle, scrollableContentStyle } from '../styles/scrollbar';
 
 import { Ballot, BallotType } from '../types/ballot';
 
 const ViewBallot: React.FC = () => {
     const { id } = useParams();
     const navigate = useNavigate();
+    const { isAdmin } = useAuth();
     const [ballot, setBallot] = useState<Ballot | null>(null);
     const [userVote, setUserVote] = useState<any | null>(null);
     const [userVotes, setUserVotes] = useState<any[]>([]);
+    const [analytics, setAnalytics] = useState<any | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const searchParams = new URLSearchParams(window.location.search);
@@ -35,9 +40,13 @@ const ViewBallot: React.FC = () => {
         const fetchData = async () => {
             try {
                 console.log('[ViewBallot] Fetching ballot data...');
-                const ballotResponse = await API.get(`/ballots/${id}`);
+                const [ballotResponse, analyticsResponse] = await Promise.all([
+                    API.get(`/ballots/${id}`),
+                    API.get(`/ballots/${id}/analytics`)
+                ]);
                 console.log('[ViewBallot] Received ballot:', ballotResponse.data);
                 setBallot(ballotResponse.data);
+                setAnalytics(analyticsResponse.data);
 
                 // Always try to fetch vote data, not just when isVoted is true
                 try {
@@ -109,38 +118,43 @@ const ViewBallot: React.FC = () => {
 
     if (loading) {
         return (
-            <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '60vh' }}>
-                <CircularProgress />
-            </Box>
-        );
-    }
-
-    if (error) {
-        return (
-            <Box sx={{ p: 3 }}>
+            <Box sx={contentContainerStyle}>
                 <PageHeader title="View Ballot" />
-                <Alert severity="error" sx={{ mt: 2 }}>
-                    {error}
-                </Alert>
+                <Box sx={scrollableContentStyle}>
+                    <Box sx={{ display: 'flex', justifyContent: 'center', p: 3 }}>
+                        <CircularProgress />
+                    </Box>
+                </Box>
             </Box>
         );
     }
 
     if (!ballot) {
         return (
-            <Box sx={{ p: 3 }}>
+            <Box sx={contentContainerStyle}>
                 <PageHeader title="View Ballot" />
-                <Alert severity="error" sx={{ mt: 2 }}>
-                    Ballot not found
-                </Alert>
+                <Box sx={scrollableContentStyle}>
+                    <Alert severity="error" sx={{ m: 3 }}>
+                        Ballot not found
+                    </Alert>
+                </Box>
             </Box>
         );
-    }    const hasVoted = ballot.type === 'MULTIPLE_CHOICE' ? userVotes.length > 0 : !!userVote;
-    const isReadOnly = hasVoted || ballot.status === 'Ended' || ballot.status === 'Suspended';
-    console.log('[ViewBallot] Rendering form with state:', {
+    }
+
+    const hasVoted = ballot.type === 'MULTIPLE_CHOICE' ? userVotes.length > 0 : !!userVote;
+    const isEnded = ballot.status === 'Ended';
+    const isSuspended = ballot.status === 'Suspended';
+    const isReadOnly = hasVoted || isEnded || isSuspended;
+    const shouldShowResults = isEnded && !isAdmin();
+
+    console.log('[ViewBallot] Rendering with state:', {
         ballotId: ballot.id,
         hasVoted,
         isReadOnly,
+        isEnded,
+        isSuspended,
+        shouldShowResults,
         ballotStatus: ballot.status,
         userVotes: ballot.type === 'MULTIPLE_CHOICE' ? userVotes : undefined
     });
@@ -149,19 +163,22 @@ const ViewBallot: React.FC = () => {
         if (hasVoted) {
             return "You've already voted on this ballot";
         }
-        if (ballot.status === 'Suspended') {
+        if (isSuspended) {
             return "This ballot has been suspended by an administrator";
         }
-        return "This ballot has ended";
+        if (isEnded && isAdmin()) {
+            return "This ballot has ended";
+        }
+        return "";
     };
 
     const getStatusSeverity = () => {
         if (hasVoted) return "info";
-        if (ballot.status === 'Suspended') return "warning";
+        if (isSuspended) return "warning";
         return "info";
     };
 
-    const statusAlert = isReadOnly ? (
+    const statusAlert = isReadOnly && !shouldShowResults ? (
         <Alert 
             severity={getStatusSeverity()}
             sx={{
@@ -244,15 +261,38 @@ const ViewBallot: React.FC = () => {
         }
     };
 
-    return (
-        <Box sx={{ p: 3 }}>
+    const renderAnalytics = () => {
+        if (!analytics) return null;
+
+        return (
+            <BallotResultsSummary
+                analytics={analytics}
+                ballotId={ballot.id}
+                isAdmin={isAdmin}
+                sx={{ mt: 3 }}
+            />
+        );
+    };    return (
+        <Box sx={contentContainerStyle}>
             <PageHeader 
-                title="View Ballot"
+                title={shouldShowResults ? ballot.title : "View Ballot"}
                 statusAlert={statusAlert}
             />
             
-            {renderVoteForm()}
-            {/* Add similar blocks for other ballot types */}
+            <Paper sx={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+                <Box sx={scrollableContentStyle}>
+                    {shouldShowResults && analytics ? (
+                        <BallotResultsSummary 
+                            analytics={analytics}
+                            ballotType={ballot.type}
+                        />
+                    ) : (
+                        <Box sx={{ p: 3 }}>
+                            {renderVoteForm()}
+                        </Box>
+                    )}
+                </Box>
+            </Paper>
         </Box>
     );
 }

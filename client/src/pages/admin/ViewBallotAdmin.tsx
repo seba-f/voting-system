@@ -117,6 +117,13 @@ interface Analytics {
 		hour: number;
 		votes: number;
 	}>;
+	hourlyDistributionByDate: Array<{
+		date: string;
+		hourlyDistribution: Array<{
+			hour: number;
+			votes: number;
+		}>;
+	}>;
 }
 
 const ViewBallotAdmin: React.FC = () => {
