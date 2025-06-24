@@ -29,18 +29,11 @@
 
 ## System Architecture
 
-```
-+-------------------+        HTTP/REST        +-------------------+
-|    Electron App   | <--------------------> |   Express Server  |
-|  (React Frontend) |                        | (Node.js Backend) |
-+-------------------+                        +-------------------+
-        |   |                                        |
-        |   |                                        |
-        |   |         +-------------------+           |
-        |   +-------> |   MySQL Database  | <---------+
-        |             +-------------------+           |
-        |                                            |
-        +-- IPC (window controls, session) ----------+
+```mermaid
+graph TD
+    A[Electron App (React Frontend)] -- HTTP/REST --> B[Express Server (Node.js Backend)]
+    B -- Sequelize ORM --> C[MySQL Database]
+    A -- IPC (window controls, session) --> A
 ```
 
 ### Implementation Details
@@ -54,14 +47,18 @@
 
 ### Entity-Relationship Diagram
 
-```
-[User]---<UserRoles>---[Role]---<CategoryRoles>---[Category]---<Ballot>
-   |           |                                 |
-   |           +-----------------------------+   |
-   |                                         |   |
-   +---<Session>                              |   |
-   |                                         |   |
-   +---<Vote>---[VotingOption]---<Ballot>-----+---+
+```mermaid
+erDiagram
+    User ||--o{ UserRoles : ""
+    Role ||--o{ UserRoles : ""
+    Role ||--o{ CategoryRoles : ""
+    Category ||--o{ CategoryRoles : ""
+    Category ||--|{ Ballot : ""
+    User ||--o{ Session : ""
+    User ||--o{ Vote : ""
+    Ballot ||--o{ VotingOption : ""
+    Ballot ||--o{ Vote : ""
+    VotingOption ||--o{ Vote : ""
 ```
 
 ### Sequelize Model Implementation
