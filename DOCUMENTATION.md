@@ -30,10 +30,10 @@
 ## System Architecture
 
 ```mermaid
-graph TD
-    A[Electron App (React Frontend)] -- HTTP/REST --> B[Express Server (Node.js Backend)]
-    B -- Sequelize ORM --> C[MySQL Database]
-    A -- IPC (window controls, session) --> A
+flowchart TD
+    A[Electron App (React Frontend)] --|HTTP/REST| B[Express Server (Node.js Backend)]
+    B --|Sequelize ORM| C[MySQL Database]
+    A --|IPC (window controls, session)| A
 ```
 
 ### Implementation Details
