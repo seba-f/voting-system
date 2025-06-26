@@ -225,17 +225,48 @@ export const getActiveBallotsForCategory = async (req: AuthRequest, res: Respons
 
 export const getPastBallotsForCategory = async (req: AuthRequest, res: Response): Promise<void> => {
     try {
-        const currentDate = new Date();
-        const ballots = await Ballot.findAll({
-            where: {
-                limitDate: {
-                    [Op.lt]: currentDate
-                },
-                isSuspended: false
-            },
-            include: [VotingOption]
-        });
+        if (!req.user) {
+            res.status(401).json({ message: 'User not authenticated' });
+            return;
+        }
 
+        // Get user's roles with Role information
+        await UserRoles.belongsTo(Role, { foreignKey: 'roleId' });
+        const userRoles = await UserRoles.findAll({
+            where: { userId: req.user.id },
+            include: [{ model: Role, attributes: ['id', 'name'] }]
+        }) as unknown as UserRoleWithRole[];
+
+        // Check if user is admin
+        const isAdmin = userRoles.some(ur => ur.Role?.name === 'admin' || ur.Role?.name === 'DefaultAdmin');
+        const currentDate = new Date();
+        let ballots;
+        if (isAdmin) {
+            // Admin: fetch all past ballots
+            ballots = await Ballot.findAll({
+                where: {
+                    limitDate: { [Op.lt]: currentDate },
+                    isSuspended: false
+                },
+                include: [VotingOption]
+            });
+        } else {
+            // Non-admin: filter by accessible categories
+            const userRoleIds = userRoles.map(role => role.roleId);
+            const categoryRoles = await CategoryRoles.findAll({
+                where: { roleId: { [Op.in]: userRoleIds } },
+                attributes: ['categoryId']
+            });
+            const accessibleCategoryIds = categoryRoles.map(cr => cr.categoryId);
+            ballots = await Ballot.findAll({
+                where: {
+                    limitDate: { [Op.lt]: currentDate },
+                    isSuspended: false,
+                    categoryId: { [Op.in]: accessibleCategoryIds }
+                },
+                include: [VotingOption]
+            });
+        }
         const formattedBallots = ballots.map(formatBallotResponse);
         res.json(formattedBallots);
     } catch (error: any) {
@@ -246,13 +277,37 @@ export const getPastBallotsForCategory = async (req: AuthRequest, res: Response)
 
 export const getSuspendedBallotsForCategory = async (req: AuthRequest, res: Response): Promise<void> => {
     try {
-        const ballots = await Ballot.findAll({
-            where: {
-                isSuspended: true
-            },
-            include: [VotingOption]
-        });
-
+        if (!req.user) {
+            res.status(401).json({ message: 'User not authenticated' });
+            return;
+        }
+        await UserRoles.belongsTo(Role, { foreignKey: 'roleId' });
+        const userRoles = await UserRoles.findAll({
+            where: { userId: req.user.id },
+            include: [{ model: Role, attributes: ['id', 'name'] }]
+        }) as unknown as UserRoleWithRole[];
+        const isAdmin = userRoles.some(ur => ur.Role?.name === 'admin' || ur.Role?.name === 'DefaultAdmin');
+        let ballots;
+        if (isAdmin) {
+            ballots = await Ballot.findAll({
+                where: { isSuspended: true },
+                include: [VotingOption]
+            });
+        } else {
+            const userRoleIds = userRoles.map(role => role.roleId);
+            const categoryRoles = await CategoryRoles.findAll({
+                where: { roleId: { [Op.in]: userRoleIds } },
+                attributes: ['categoryId']
+            });
+            const accessibleCategoryIds = categoryRoles.map(cr => cr.categoryId);
+            ballots = await Ballot.findAll({
+                where: {
+                    isSuspended: true,
+                    categoryId: { [Op.in]: accessibleCategoryIds }
+                },
+                include: [VotingOption]
+            });
+        }
         const formattedBallots = ballots.map(formatBallotResponse);
         res.json(formattedBallots);
     } catch (error: any) {
